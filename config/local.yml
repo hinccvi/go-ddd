@@ -1,0 +1,21 @@
+app:
+  name: app
+  port: 8022
+
+jwt:
+  jwt_signing_key: 4AYDipIpozCCL51ETa7RksNTh/t6yvnQTKGW9ECkF/Loje8xzJH3xyQxgovNB4t3oS5iH+iDm5mlygssd6Feaw==
+  jwt_expiration: 72
+
+db:
+  host: "127.0.0.1"
+  port: 5432
+  user: docker
+  password: docker
+  dbname: docker
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: redis
+  db: 0
+  pool_size: 500
