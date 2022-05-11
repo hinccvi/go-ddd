@@ -15,7 +15,7 @@ type Config struct {
 
 	JwtConfig struct {
 		JWTSigningKey string `mapstructure:"jwt_signing_key"`
-		JWTExpiration string `mapstructure:"jwt_expiration"`
+		JWTExpiration int    `mapstructure:"jwt_expiration"`
 	} `mapstructure:"jwt"`
 
 	DBConfig struct {

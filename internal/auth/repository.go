@@ -23,6 +23,6 @@ func NewRepository(db *gorm.DB, logger log.Logger) Repository {
 
 func (r repository) GetUserByUsernameAndPassword(ctx context.Context, username, password string) (entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Select("id, username").Where(&user).First(&user).Error
+	err := r.db.WithContext(ctx).Select("id, name").Where(&user).First(&user).Error
 	return user, err
 }

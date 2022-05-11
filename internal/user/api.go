@@ -14,10 +14,10 @@ func RegisterHandlers(dg *gin.RouterGroup, service Service, authHandler gin.Hand
 		v1.GET("/get", r.Get)
 		v1.GET("/query", r.Query)
 		v1.GET("/count", r.Count)
+		v1.POST("/create", r.Create)
 
 		v1.Use(authHandler)
 
-		v1.POST("/create", r.Create)
 		v1.PATCH("/update", r.Update)
 		v1.DELETE("/delete", r.Delete)
 	}
@@ -54,7 +54,7 @@ func (r resource) Get(c *gin.Context) {
 		return
 	}
 
-	tools.RespWithOK(c, user)
+	tools.RespOkWithMsg(c, tools.SuccessMsg, user)
 }
 
 func (r resource) Query(c *gin.Context) {
@@ -71,7 +71,7 @@ func (r resource) Query(c *gin.Context) {
 		return
 	}
 
-	tools.RespWithOK(c, users)
+	tools.RespOkWithMsg(c, tools.SuccessMsg, users)
 }
 
 func (r resource) Count(c *gin.Context) {
@@ -81,7 +81,7 @@ func (r resource) Count(c *gin.Context) {
 		return
 	}
 
-	tools.RespWithOK(c, struct {
+	tools.RespOkWithMsg(c, tools.SuccessMsg, struct {
 		Total int64 `json:"total"`
 	}{
 		Total: total,
@@ -102,7 +102,7 @@ func (r resource) Create(c *gin.Context) {
 		return
 	}
 
-	tools.RespWithCreated(c, user)
+	tools.RespOkWithMsg(c, tools.CreatedMsg, user)
 }
 
 func (r resource) Update(c *gin.Context) {
@@ -119,7 +119,7 @@ func (r resource) Update(c *gin.Context) {
 		return
 	}
 
-	tools.RespWithOK(c, user)
+	tools.RespOkWithMsg(c, tools.SuccessMsg, user)
 }
 
 func (r resource) Delete(c *gin.Context) {
@@ -136,5 +136,5 @@ func (r resource) Delete(c *gin.Context) {
 		return
 	}
 
-	tools.RespWithOK(c, user)
+	tools.RespOkWithMsg(c, tools.SuccessMsg, user)
 }

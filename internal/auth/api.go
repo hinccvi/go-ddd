@@ -25,13 +25,13 @@ func login(service Service, logger log.Logger) gin.HandlerFunc {
 			return
 		}
 
-		token, err := service.Login(c.Request.Context(), req.Username, req.Password)
+		token, err := service.Login(c.Request.Context(), req.Name, req.Password)
 		if err != nil {
 			c.Error(err)
 			return
 		}
 
-		tools.RespWithOK(c, struct {
+		tools.RespOkWithMsg(c, tools.SuccessMsg, struct {
 			Token string `json:"token"`
 		}{token})
 	}

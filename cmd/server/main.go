@@ -15,6 +15,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/migrations"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/accesslog"
@@ -101,11 +102,27 @@ func buildHandler(mode string, logger log.Logger, dbx *gorm.DB, cfg config.Confi
 		c.Error(errors.NotFound("resource not found"))
 	})
 
-	defaultGroup := e.Group("")
-
 	authHandler := auth.Handler(cfg.JwtConfig.JWTSigningKey)
 
-	user.RegisterHandlers(defaultGroup, user.NewService(user.NewRepository(dbx, logger), logger), authHandler, logger)
+	defaultGroup := e.Group("")
+
+	healthcheck.RegisterHandlers(
+		defaultGroup,
+		Version,
+	)
+
+	auth.RegisterHandlers(
+		defaultGroup,
+		auth.NewService(cfg.JwtConfig.JWTSigningKey, cfg.JwtConfig.JWTExpiration, auth.NewRepository(dbx, logger), logger),
+		logger,
+	)
+
+	user.RegisterHandlers(
+		defaultGroup,
+		user.NewService(user.NewRepository(dbx, logger), logger),
+		authHandler,
+		logger,
+	)
 
 	return e
 }

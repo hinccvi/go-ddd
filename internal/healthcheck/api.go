@@ -11,6 +11,6 @@ func RegisterHandlers(dg *gin.RouterGroup, version string) {
 
 func healthcheck(version string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tools.RespWithOK(c, "OK "+version)
+		tools.RespOkWithMsg(c, tools.SuccessMsg, "OK "+version)
 	}
 }

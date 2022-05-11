@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -47,25 +48,25 @@ type service struct {
 }
 
 // NewService creates a new authentication service.
-func NewService(signingKey string, tokenExpiration int, logger log.Logger, repo Repository) Service {
+func NewService(signingKey string, tokenExpiration int, repo Repository, logger log.Logger) Service {
 	return service{signingKey, tokenExpiration, logger, repo}
 }
 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
 // Otherwise, an error is returned.
 func (s service) Login(ctx context.Context, username, password string) (string, error) {
-	if user := s.authenticate(ctx, username, password); !reflect.DeepEqual(user, new(entity.User)) {
+	if user := s.authenticate(ctx, username, password); !reflect.DeepEqual(user, &entity.User{}) {
 		return s.generateJWT(user)
 	}
 	return "", errs.Unauthorized("incorrect username or password")
 }
 
 // authenticate authenticates a user using username and password.
-// If username and password are correct, an identity is returned. Otherwise, nil is returned.
-func (s service) authenticate(ctx context.Context, username, password string) entity.User {
-	logger := s.logger.With(ctx, "user", username)
+// If name and password are correct, an identity is returned. Otherwise, nil is returned.
+func (s service) authenticate(ctx context.Context, name, password string) entity.User {
+	logger := s.logger.With(ctx, "user", name)
 
-	user, err := s.repo.GetUserByUsernameAndPassword(ctx, username, password)
+	user, err := s.repo.GetUserByUsernameAndPassword(ctx, name, password)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Infof("authentication failed")
@@ -94,7 +95,8 @@ func (s service) generateJWT(user entity.User) (string, error) {
 		},
 	)
 
-	tokenStr, err := tokenObj.SignedString(s.signingKey)
+	fmt.Println(s.signingKey)
+	tokenStr, err := tokenObj.SignedString([]byte(s.signingKey))
 	return tokenStr, err
 
 }

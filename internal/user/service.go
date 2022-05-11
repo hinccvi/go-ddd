@@ -43,7 +43,7 @@ func (s service) Get(ctx context.Context, req getOrDeleteUserRequest) (User, err
 }
 
 func (s service) Query(ctx context.Context, req queryUserRequest) ([]User, error) {
-	items, err := s.repo.Query(ctx, req.Offset, req.Limit)
+	items, err := s.repo.Query(ctx, *req.Offset, req.Limit)
 	if err != nil {
 		return []User{}, err
 	}
@@ -63,8 +63,9 @@ func (s service) Count(ctx context.Context) (int64, error) {
 func (s service) Create(ctx context.Context, req createUserRequest) (User, error) {
 	id := uuid.NewString()
 	err := s.repo.Create(ctx, entity.User{
-		ID:   id,
-		Name: req.Name,
+		ID:       id,
+		Name:     req.Name,
+		Password: req.Password,
 	})
 	if err != nil {
 		return User{}, err
@@ -80,6 +81,7 @@ func (s service) Update(ctx context.Context, req updateUserRequest) (User, error
 	}
 
 	user.Name = req.Name
+	user.Password = req.Password
 
 	if err = s.repo.Update(ctx, user.User); err != nil {
 		return user, err

@@ -29,6 +29,7 @@ func Handler(logger log.Logger) gin.HandlerFunc {
 		}
 
 		l := logger.With(c.Request.Context())
+
 		l.Error(zap.Error(lastErr))
 
 		c.JSON(http.StatusOK, buildErrorResponse(lastErr))

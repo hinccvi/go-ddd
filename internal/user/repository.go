@@ -44,7 +44,7 @@ func (r repository) Query(ctx context.Context, offset, limit int) ([]entity.User
 	var users []entity.User
 	err := r.db.WithContext(ctx).
 		Order("created_at desc").
-		Offset((offset - 1) * limit).
+		Offset((offset) * limit).
 		Limit(limit).
 		Find(&users).
 		Error
