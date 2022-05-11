@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	ErrBinding  = errors.New("invalid input")
-	ErrNotFound = errors.New("not found")
+	ErrBinding      = errors.New("invalid input")
+	ErrInvalidToken = errors.New("invalid token")
+	ErrUnauthorized = errors.New("unauthorized")
 )
 
 func Handler(logger log.Logger) gin.HandlerFunc {
@@ -30,28 +31,23 @@ func Handler(logger log.Logger) gin.HandlerFunc {
 		l := logger.With(c.Request.Context())
 		l.Error(zap.Error(lastErr))
 
-		r := buildErrorResponse(lastErr)
-		c.JSON(http.StatusOK, r)
+		c.JSON(http.StatusOK, buildErrorResponse(lastErr))
 	}
 }
 
 // buildErrorResponse builds an error response from an error.
 func buildErrorResponse(err *gin.Error) ErrorResponse {
-	if ve, ok := err.Err.(validator.ValidationErrors); ok {
-		return InvalidInput(ve[len(ve)-1].Field() + " " + ve[len(ve)-1].Tag())
-	}
-
-	if _, ok := err.Err.(*json.SyntaxError); ok {
+	switch e := err.Err.(type) {
+	case validator.ValidationErrors:
+		return InvalidInput(e[len(e)-1].Field() + " " + e[len(e)-1].Tag())
+	case *json.SyntaxError:
 		return InvalidInput("Invalid JSON format")
+	case ErrorResponse:
+		return e
 	}
 
-	// strconv failed
 	if errors.Is(err, strconv.ErrSyntax) {
 		return InvalidInput("Invalid syntax")
-	}
-
-	if errors.Is(err, ErrNotFound) {
-		return NotFound(err.Error())
 	}
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {

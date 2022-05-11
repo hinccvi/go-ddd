@@ -63,10 +63,8 @@ func (s service) Count(ctx context.Context) (int64, error) {
 func (s service) Create(ctx context.Context, req createUserRequest) (User, error) {
 	id := uuid.NewString()
 	err := s.repo.Create(ctx, entity.User{
-		ID:       id,
-		Name:     req.Name,
-		Age:      req.Age,
-		Position: req.Position,
+		ID:   id,
+		Name: req.Name,
 	})
 	if err != nil {
 		return User{}, err
@@ -82,8 +80,6 @@ func (s service) Update(ctx context.Context, req updateUserRequest) (User, error
 	}
 
 	user.Name = req.Name
-	user.Age = req.Age
-	user.Position = req.Position
 
 	if err = s.repo.Update(ctx, user.User); err != nil {
 		return user, err

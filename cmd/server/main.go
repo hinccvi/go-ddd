@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
@@ -54,7 +55,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.AppConfig.Port),
-		Handler: buildHandler(*flagMode, logger, dbx),
+		Handler: buildHandler(*flagMode, logger, dbx, cfg),
 	}
 
 	logger.Infof("Server listening on %s", server.Addr)
@@ -83,7 +84,7 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(mode string, logger log.Logger, dbx *gorm.DB) *gin.Engine {
+func buildHandler(mode string, logger log.Logger, dbx *gorm.DB, cfg config.Config) *gin.Engine {
 	if mode == "local" {
 		gin.ForceConsoleColor()
 		gin.DefaultWriter = colorable.NewColorableStdout()
@@ -97,12 +98,14 @@ func buildHandler(mode string, logger log.Logger, dbx *gorm.DB) *gin.Engine {
 		errors.Handler(logger),
 	)
 	e.NoRoute(func(c *gin.Context) {
-		c.Error(errors.ErrNotFound)
+		c.Error(errors.NotFound("resource not found"))
 	})
 
 	defaultGroup := e.Group("")
 
-	user.RegisterHandlers(defaultGroup, user.NewService(user.NewRepository(dbx, logger), logger), logger)
+	authHandler := auth.Handler(cfg.JwtConfig.JWTSigningKey)
+
+	user.RegisterHandlers(defaultGroup, user.NewService(user.NewRepository(dbx, logger), logger), authHandler, logger)
 
 	return e
 }

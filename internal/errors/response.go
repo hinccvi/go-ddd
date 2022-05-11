@@ -21,19 +21,14 @@ func (e ErrorResponse) Error() string {
 	return e.Message
 }
 
-// StatusCode is required by routing.HTTPError interface.
-func (e ErrorResponse) StatusCode() int {
-	return e.Status
-}
-
 // InternalServerError creates a new error response representing an internal server error (HTTP 500)
 func InternalServerError(msg string) ErrorResponse {
-	if msg == "" {
-		msg = "We encountered an error while processing your request."
-	}
 	return ErrorResponse{
 		Status:  http.StatusInternalServerError,
-		Message: msg,
+		Message: "We encountered an error while processing your request.",
+		Data: struct {
+			Error string `json:"error"`
+		}{msg},
 	}
 }
 

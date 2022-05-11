@@ -6,7 +6,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 )
 
-func RegisterHandlers(dg *gin.RouterGroup, service Service, logger log.Logger) {
+func RegisterHandlers(dg *gin.RouterGroup, service Service, authHandler gin.HandlerFunc, logger log.Logger) {
 	r := &resource{logger, service}
 
 	v1 := dg.Group("v1")
@@ -14,6 +14,9 @@ func RegisterHandlers(dg *gin.RouterGroup, service Service, logger log.Logger) {
 		v1.GET("/get", r.Get)
 		v1.GET("/query", r.Query)
 		v1.GET("/count", r.Count)
+
+		v1.Use(authHandler)
+
 		v1.POST("/create", r.Create)
 		v1.PATCH("/update", r.Update)
 		v1.DELETE("/delete", r.Delete)

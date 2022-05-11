@@ -10,7 +10,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 )
 
-// MockRoutingContext creates a routing.Conext for testing handlers.
+// MockRoutingContext creates a gin context for testing handlers.
 func MockRoutingContext(req *http.Request) (*gin.Context, *httptest.ResponseRecorder) {
 	res := httptest.NewRecorder()
 	if req.Header.Get("Content-Type") == "" {
@@ -20,7 +20,7 @@ func MockRoutingContext(req *http.Request) (*gin.Context, *httptest.ResponseReco
 	return ctx, res
 }
 
-// MockRouter creates a routing.Router for testing APIs.
+// MockRouter creates a gin router for testing APIs.
 func MockRouter(logger log.Logger) *gin.Engine {
 	e := gin.Default()
 	e.Use(
