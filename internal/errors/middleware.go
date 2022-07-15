@@ -13,12 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	ErrBinding      = errors.New("invalid input")
-	ErrInvalidToken = errors.New("invalid token")
-	ErrUnauthorized = errors.New("unauthorized")
-)
-
 func Handler(logger log.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()

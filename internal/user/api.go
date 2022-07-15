@@ -42,7 +42,7 @@ func (r resource) Get(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithData(c, tools.SuccessMsg, user)
+	tools.RespOkWithData(c, tools.Success, user)
 }
 
 func (r resource) Query(c *gin.Context) {
@@ -59,7 +59,7 @@ func (r resource) Query(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithData(c, tools.SuccessMsg, users)
+	tools.RespOkWithData(c, tools.Success, users)
 }
 
 func (r resource) Count(c *gin.Context) {
@@ -69,7 +69,7 @@ func (r resource) Count(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithData(c, tools.SuccessMsg, struct {
+	tools.RespOkWithData(c, tools.Success, struct {
 		Total int64 `json:"total"`
 	}{
 		Total: total,
@@ -90,7 +90,7 @@ func (r resource) Create(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithData(c, tools.CreatedMsg, user)
+	tools.RespOkWithData(c, tools.Created, user)
 }
 
 func (r resource) Update(c *gin.Context) {
@@ -107,7 +107,7 @@ func (r resource) Update(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithData(c, tools.SuccessMsg, user)
+	tools.RespOkWithData(c, tools.Success, user)
 }
 
 func (r resource) Delete(c *gin.Context) {
@@ -124,5 +124,5 @@ func (r resource) Delete(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithData(c, tools.SuccessMsg, user)
+	tools.RespOkWithData(c, tools.Success, user)
 }

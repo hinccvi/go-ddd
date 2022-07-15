@@ -25,7 +25,7 @@ func login(service Service, logger log.Logger) gin.HandlerFunc {
 			return
 		}
 
-		tools.RespOkWithData(c, tools.SuccessMsg, struct {
+		tools.RespOkWithData(c, tools.Success, struct {
 			Token string `json:"token"`
 		}{token})
 	}

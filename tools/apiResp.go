@@ -6,9 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type message string
+
 const (
-	SuccessMsg = "success"
-	CreatedMsg = "created"
+	Success message = "success"
+	Created message = "created"
+	Updated message = "updated"
+	Deleted message = "deleted"
 )
 
 type response struct {
@@ -16,9 +20,9 @@ type response struct {
 	Data    interface{} `json:"data"`
 }
 
-func RespOkWithData[I any](c *gin.Context, msg string, i I) {
+func RespOkWithData[I any](c *gin.Context, msg message, i I) {
 	c.JSON(http.StatusOK, response{
-		Message: msg,
+		Message: string(msg),
 		Data:    i,
 	})
 }
