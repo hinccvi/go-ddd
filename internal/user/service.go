@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
@@ -24,13 +25,14 @@ type User struct {
 }
 
 type service struct {
+	rds    *redis.Client
 	repo   Repository
 	logger log.Logger
 }
 
 // NewService creates a new user service.
-func NewService(repo Repository, logger log.Logger) Service {
-	return service{repo, logger}
+func NewService(rds *redis.Client, repo Repository, logger log.Logger) Service {
+	return service{rds, repo, logger}
 }
 
 func (s service) Get(ctx context.Context, req getOrDeleteUserRequest) (User, error) {

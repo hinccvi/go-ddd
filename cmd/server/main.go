@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
@@ -20,6 +21,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/accesslog"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	rds "github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/redis"
 	"github.com/mattn/go-colorable"
 	"gorm.io/gorm"
 )
@@ -48,6 +50,13 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// connect to redis
+	rds, err := rds.Connect(cfg)
+	if err != nil {
+		logger.Error(err)
+		os.Exit(-1)
+	}
+
 	// migrate database
 	if err := migrations.Init(dbx); err != nil {
 		logger.Error(err)
@@ -56,7 +65,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.AppConfig.Port),
-		Handler: buildHandler(*flagMode, logger, dbx, cfg),
+		Handler: buildHandler(*flagMode, logger, rds, dbx, cfg),
 	}
 
 	logger.Infof("Server listening on %s", server.Addr)
@@ -85,7 +94,7 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(mode string, logger log.Logger, dbx *gorm.DB, cfg config.Config) *gin.Engine {
+func buildHandler(mode string, logger log.Logger, rds *redis.Client, dbx *gorm.DB, cfg config.Config) *gin.Engine {
 	if mode == "local" {
 		gin.ForceConsoleColor()
 		gin.DefaultWriter = colorable.NewColorableStdout()
@@ -104,22 +113,22 @@ func buildHandler(mode string, logger log.Logger, dbx *gorm.DB, cfg config.Confi
 
 	authHandler := auth.Handler(cfg.JwtConfig.JWTSigningKey)
 
-	defaultGroup := e.Group("")
+	defaultRouterGroup := e.Group("")
 
 	healthcheck.RegisterHandlers(
-		defaultGroup,
+		defaultRouterGroup,
 		Version,
 	)
 
 	auth.RegisterHandlers(
-		defaultGroup,
+		defaultRouterGroup,
 		auth.NewService(cfg.JwtConfig.JWTSigningKey, cfg.JwtConfig.JWTExpiration, auth.NewRepository(dbx, logger), logger),
 		logger,
 	)
 
 	user.RegisterHandlers(
-		defaultGroup,
-		user.NewService(user.NewRepository(dbx, logger), logger),
+		defaultRouterGroup,
+		user.NewService(rds, user.NewRepository(dbx, logger), logger),
 		authHandler,
 		logger,
 	)
