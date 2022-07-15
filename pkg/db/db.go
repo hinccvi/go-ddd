@@ -21,7 +21,7 @@ func Connect(mode string, cfg config.Config) (*gorm.DB, error) {
 			gormlogger.Config{
 				SlowThreshold:             time.Second,
 				LogLevel:                  gormlogger.Info,
-				IgnoreRecordNotFoundError: true,
+				IgnoreRecordNotFoundError: false,
 				Colorful:                  true,
 			},
 		)
