@@ -28,11 +28,27 @@ func Handler(logger log.Logger) gin.HandlerFunc {
 			return
 		}
 
-		l := logger.With(c.Request.Context())
+		logger.With(c.Request.Context()).Error(zap.Error(lastErr))
 
-		l.Error(zap.Error(lastErr))
+		status := 0
+		resp := buildErrorResponse(lastErr)
 
-		c.JSON(http.StatusOK, buildErrorResponse(lastErr))
+		switch resp.Status {
+		case 400:
+			fallthrough
+		case 401:
+			fallthrough
+		case 403:
+			fallthrough
+		case 404:
+			fallthrough
+		case 500:
+			status = resp.Status
+		default:
+			status = http.StatusBadRequest
+		}
+
+		c.JSON(status, resp)
 	}
 }
 
@@ -40,20 +56,20 @@ func Handler(logger log.Logger) gin.HandlerFunc {
 func buildErrorResponse(err *gin.Error) ErrorResponse {
 	switch e := err.Err.(type) {
 	case validator.ValidationErrors:
-		return InvalidInput(e[len(e)-1].Field() + " " + e[len(e)-1].Tag())
+		return InvalidInput(404, e[len(e)-1].Field()+" "+e[len(e)-1].Tag())
 	case *json.SyntaxError:
-		return InvalidInput("Invalid JSON format")
+		return InvalidInput(404, "Invalid JSON format")
 	case ErrorResponse:
 		return e
 	}
 
 	if errors.Is(err, strconv.ErrSyntax) {
-		return InvalidInput("Invalid syntax")
+		return InvalidInput(404, "Invalid syntax")
 	}
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return NotFound(err.Error())
 	}
 
-	return InternalServerError(err.Error())
+	return InternalServerError()
 }

@@ -10,17 +10,11 @@ func RegisterHandlers(dg *gin.RouterGroup, service Service, logger log.Logger) {
 	dg.POST("/login", login(service, logger))
 }
 
-func bindJSON[I any](c *gin.Context, i I) error {
-	err := c.ShouldBindJSON(i)
-
-	return err
-}
-
 func login(service Service, logger log.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req loginRequest
 
-		if err := bindJSON(c, &req); err != nil {
+		if err := c.ShouldBindJSON(&req); err != nil {
 			c.Error(err)
 			return
 		}
@@ -31,7 +25,7 @@ func login(service Service, logger log.Logger) gin.HandlerFunc {
 			return
 		}
 
-		tools.RespOkWithMsg(c, tools.SuccessMsg, struct {
+		tools.RespOkWithData(c, tools.SuccessMsg, struct {
 			Token string `json:"token"`
 		}{token})
 	}

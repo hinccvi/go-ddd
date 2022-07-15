@@ -22,13 +22,10 @@ func (e ErrorResponse) Error() string {
 }
 
 // InternalServerError creates a new error response representing an internal server error (HTTP 500)
-func InternalServerError(msg string) ErrorResponse {
+func InternalServerError() ErrorResponse {
 	return ErrorResponse{
 		Status:  http.StatusInternalServerError,
 		Message: "We encountered an error while processing your request.",
-		Data: struct {
-			Error string `json:"error"`
-		}{msg},
 	}
 }
 
@@ -81,13 +78,13 @@ type invalidField struct {
 }
 
 // InvalidInput creates a new error response representing a data validation error (HTTP 400).
-func InvalidInput(errs string) ErrorResponse {
+func InvalidInput(status int, errs string) ErrorResponse {
 	field := invalidField{
 		Error: errs,
 	}
 
 	return ErrorResponse{
-		Status:  http.StatusBadRequest,
+		Status:  status,
 		Message: "There is some problem with the data you submitted.",
 		Data:    field,
 	}

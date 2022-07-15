@@ -28,22 +28,10 @@ type resource struct {
 	service Service
 }
 
-func bindQuery[I any](c *gin.Context, i I) error {
-	err := c.ShouldBindQuery(i)
-
-	return err
-}
-
-func bindJSON[I any](c *gin.Context, i I) error {
-	err := c.ShouldBindJSON(i)
-
-	return err
-}
-
 func (r resource) Get(c *gin.Context) {
 	var req getOrDeleteUserRequest
 
-	if err := bindQuery(c, &req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -54,13 +42,13 @@ func (r resource) Get(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithMsg(c, tools.SuccessMsg, user)
+	tools.RespOkWithData(c, tools.SuccessMsg, user)
 }
 
 func (r resource) Query(c *gin.Context) {
 	var req queryUserRequest
 
-	if err := bindQuery(c, &req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -71,7 +59,7 @@ func (r resource) Query(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithMsg(c, tools.SuccessMsg, users)
+	tools.RespOkWithData(c, tools.SuccessMsg, users)
 }
 
 func (r resource) Count(c *gin.Context) {
@@ -81,7 +69,7 @@ func (r resource) Count(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithMsg(c, tools.SuccessMsg, struct {
+	tools.RespOkWithData(c, tools.SuccessMsg, struct {
 		Total int64 `json:"total"`
 	}{
 		Total: total,
@@ -91,7 +79,7 @@ func (r resource) Count(c *gin.Context) {
 func (r resource) Create(c *gin.Context) {
 	var req createUserRequest
 
-	if err := bindJSON(c, &req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -102,13 +90,13 @@ func (r resource) Create(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithMsg(c, tools.CreatedMsg, user)
+	tools.RespOkWithData(c, tools.CreatedMsg, user)
 }
 
 func (r resource) Update(c *gin.Context) {
 	var req updateUserRequest
 
-	if err := bindJSON(c, &req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -119,13 +107,13 @@ func (r resource) Update(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithMsg(c, tools.SuccessMsg, user)
+	tools.RespOkWithData(c, tools.SuccessMsg, user)
 }
 
 func (r resource) Delete(c *gin.Context) {
 	var req getOrDeleteUserRequest
 
-	if err := bindQuery(c, &req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -136,5 +124,5 @@ func (r resource) Delete(c *gin.Context) {
 		return
 	}
 
-	tools.RespOkWithMsg(c, tools.SuccessMsg, user)
+	tools.RespOkWithData(c, tools.SuccessMsg, user)
 }

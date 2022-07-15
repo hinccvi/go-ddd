@@ -11,10 +11,20 @@ const (
 	CreatedMsg = "created"
 )
 
-func RespOkWithMsg[I any](c *gin.Context, msg string, i I) {
-	c.JSON(http.StatusOK, gin.H{
-		"code": http.StatusOK,
-		"msg":  msg,
-		"data": i,
+type response struct {
+	Message string      `json:"msg"`
+	Data    interface{} `json:"data"`
+}
+
+func RespOkWithData[I any](c *gin.Context, msg string, i I) {
+	c.JSON(http.StatusOK, response{
+		Message: msg,
+		Data:    i,
+	})
+}
+
+func RespOk(c *gin.Context, msg string) {
+	c.JSON(http.StatusOK, response{
+		Message: msg,
 	})
 }
