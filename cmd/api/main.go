@@ -17,7 +17,6 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/migrations"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/accesslog"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
@@ -53,12 +52,6 @@ func main() {
 	// connect to redis
 	rds, err := rds.Connect(cfg)
 	if err != nil {
-		logger.Error(err)
-		os.Exit(-1)
-	}
-
-	// migrate database
-	if err := migrations.Init(dbx); err != nil {
 		logger.Error(err)
 		os.Exit(-1)
 	}
@@ -111,7 +104,7 @@ func buildHandler(mode string, logger log.Logger, rds *redis.Client, dbx *gorm.D
 		c.Error(errors.NotFound("resource not found"))
 	})
 
-	authHandler := auth.Handler(cfg.JwtConfig.AccessJWTSigningKey)
+	authHandler := auth.Handler(cfg.JwtConfig.AccessSigningKey)
 
 	defaultRouterGroup := e.Group("")
 
@@ -122,7 +115,7 @@ func buildHandler(mode string, logger log.Logger, rds *redis.Client, dbx *gorm.D
 
 	auth.RegisterHandlers(
 		defaultRouterGroup,
-		auth.NewService(cfg.JwtConfig.AccessJWTSigningKey, cfg.JwtConfig.AccessJWTExpiration, auth.NewRepository(dbx, logger), logger),
+		auth.NewService(cfg.JwtConfig.AccessSigningKey, cfg.JwtConfig.AccessExpiration, auth.NewRepository(dbx, logger), logger),
 		logger,
 	)
 

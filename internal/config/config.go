@@ -9,15 +9,14 @@ import (
 
 type Config struct {
 	AppConfig struct {
-		Name string `mapstructure:"name"`
-		Port int    `mapstructure:"port"`
+		Port int `mapstructure:"port"`
 	} `mapstructure:"app"`
 
 	JwtConfig struct {
-		AccessJWTSigningKey  string `mapstructure:"access_jwt_signing_key"`
-		AccessJWTExpiration  int    `mapstructure:"access_jwt_expiration"`
-		RefreshJWTSigningKey string `mapstructure:"refresh_jwt_signing_key"`
-		RefreshJWTExpiration int    `mapstructure:"refresh_jwt_expiration"`
+		AccessSigningKey  string `mapstructure:"access_signing_key"`
+		AccessExpiration  int    `mapstructure:"access_expiration"`
+		RefreshSigningKey string `mapstructure:"refresh_signing_key"`
+		RefreshExpiration int    `mapstructure:"refresh_expiration"`
 	} `mapstructure:"jwt"`
 
 	DBConfig struct {
