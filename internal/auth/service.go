@@ -89,7 +89,7 @@ func (s service) generateJWT(user entity.User) (string, error) {
 				Subject:   user.Name,
 				Audience:  "all",
 				IssuedAt:  time.Now().Unix(),
-				ExpiresAt: time.Now().Add(time.Duration(s.tokenExpiration) * time.Hour).Unix(),
+				ExpiresAt: time.Now().Add(time.Duration(s.tokenExpiration) * time.Minute).Unix(),
 				Id:        uuid.NewString(),
 			},
 		},

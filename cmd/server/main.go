@@ -111,7 +111,7 @@ func buildHandler(mode string, logger log.Logger, rds *redis.Client, dbx *gorm.D
 		c.Error(errors.NotFound("resource not found"))
 	})
 
-	authHandler := auth.Handler(cfg.JwtConfig.JWTSigningKey)
+	authHandler := auth.Handler(cfg.JwtConfig.AccessJWTSigningKey)
 
 	defaultRouterGroup := e.Group("")
 
@@ -122,7 +122,7 @@ func buildHandler(mode string, logger log.Logger, rds *redis.Client, dbx *gorm.D
 
 	auth.RegisterHandlers(
 		defaultRouterGroup,
-		auth.NewService(cfg.JwtConfig.JWTSigningKey, cfg.JwtConfig.JWTExpiration, auth.NewRepository(dbx, logger), logger),
+		auth.NewService(cfg.JwtConfig.AccessJWTSigningKey, cfg.JwtConfig.AccessJWTExpiration, auth.NewRepository(dbx, logger), logger),
 		logger,
 	)
 
