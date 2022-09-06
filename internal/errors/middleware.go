@@ -27,7 +27,7 @@ func Handler(logger log.Logger) gin.HandlerFunc {
 		status := 0
 		resp := buildErrorResponse(lastErr)
 
-		switch resp.Status {
+		switch resp.Code {
 		case 400:
 			fallthrough
 		case 401:
@@ -37,7 +37,7 @@ func Handler(logger log.Logger) gin.HandlerFunc {
 		case 404:
 			fallthrough
 		case 500:
-			status = resp.Status
+			status = resp.Code
 		default:
 			status = http.StatusBadRequest
 		}

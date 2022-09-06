@@ -7,7 +7,7 @@ import (
 
 // ErrorResponse is the response that represents an error.
 type ErrorResponse struct {
-	Status  int         `json:"status"`
+	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
@@ -24,7 +24,7 @@ func (e ErrorResponse) Error() string {
 // InternalServerError creates a new error response representing an internal server error (HTTP 500)
 func InternalServerError() ErrorResponse {
 	return ErrorResponse{
-		Status:  http.StatusInternalServerError,
+		Code:    http.StatusInternalServerError,
 		Message: "We encountered an error while processing your request.",
 	}
 }
@@ -35,7 +35,7 @@ func NotFound(msg string) ErrorResponse {
 		msg = "The requested resource was not found."
 	}
 	return ErrorResponse{
-		Status:  http.StatusNotFound,
+		Code:    http.StatusNotFound,
 		Message: msg,
 	}
 }
@@ -46,7 +46,7 @@ func Unauthorized(msg string) ErrorResponse {
 		msg = "You are not authenticated to perform the requested action."
 	}
 	return ErrorResponse{
-		Status:  http.StatusUnauthorized,
+		Code:    http.StatusUnauthorized,
 		Message: msg,
 	}
 }
@@ -57,7 +57,7 @@ func Forbidden(msg string) ErrorResponse {
 		msg = "You are not authorized to perform the requested action."
 	}
 	return ErrorResponse{
-		Status:  http.StatusForbidden,
+		Code:    http.StatusForbidden,
 		Message: msg,
 	}
 }
@@ -68,7 +68,7 @@ func BadRequest(msg string) ErrorResponse {
 		msg = "Your request is in a bad format."
 	}
 	return ErrorResponse{
-		Status:  http.StatusBadRequest,
+		Code:    http.StatusBadRequest,
 		Message: msg,
 	}
 }
@@ -84,7 +84,7 @@ func InvalidInput(status int, errs string) ErrorResponse {
 	}
 
 	return ErrorResponse{
-		Status:  status,
+		Code:    status,
 		Message: "There is some problem with the data you submitted.",
 		Data:    field,
 	}

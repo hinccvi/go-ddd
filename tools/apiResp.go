@@ -16,12 +16,14 @@ const (
 )
 
 type response struct {
-	Message string      `json:"msg"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
 
 func RespOkWithData[I any](c *gin.Context, msg message, i I) {
 	c.JSON(http.StatusOK, response{
+		Code:    http.StatusOK,
 		Message: string(msg),
 		Data:    i,
 	})
@@ -29,6 +31,7 @@ func RespOkWithData[I any](c *gin.Context, msg message, i I) {
 
 func RespOk(c *gin.Context, msg string) {
 	c.JSON(http.StatusOK, response{
+		Code:    http.StatusOK,
 		Message: msg,
 	})
 }
