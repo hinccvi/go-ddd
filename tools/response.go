@@ -22,13 +22,18 @@ type response struct {
 	Data    interface{} `json:"data"`
 }
 
-func RespOkWithData[I any](c echo.Context, code int, msg message, i I) error {
-	status := http.StatusBadRequest
-	if code < 999 {
-		status = code
+func generateStatusCode(code int) int {
+	if code > 999 {
+		code = http.StatusBadRequest
 	}
 
-	return c.JSON(status, response{
+	return code
+}
+
+func RespOkWithData[I any](c echo.Context, code int, msg message, i I) error {
+	statusCode := generateStatusCode(code)
+
+	return c.JSON(statusCode, response{
 		Code:    code,
 		Message: string(msg),
 		Data:    i,
@@ -36,12 +41,9 @@ func RespOkWithData[I any](c echo.Context, code int, msg message, i I) error {
 }
 
 func RespOk(c echo.Context, code int, msg message) error {
-	status := http.StatusBadRequest
-	if code < 999 {
-		status = code
-	}
+	statusCode := generateStatusCode(code)
 
-	return c.JSON(status, response{
+	return c.JSON(statusCode, response{
 		Code:    code,
 		Message: string(msg),
 	})

@@ -7,8 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func RegisterHandlers(g *echo.Group, version string, authHandler echo.MiddlewareFunc) {
-	g.GET("/healthcheck", healthcheck(version), authHandler)
+func RegisterHandlers(g *echo.Group, version string) {
+	g.GET("/healthcheck", healthcheck(version))
 }
 
 func healthcheck(version string) echo.HandlerFunc {

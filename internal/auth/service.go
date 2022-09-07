@@ -6,8 +6,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
 	errs "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
@@ -40,15 +41,14 @@ type JwtCustomClaims struct {
 }
 
 type service struct {
-	signingKey      string
-	tokenExpiration int
-	logger          log.Logger
-	repo            Repository
+	cfg    *config.Config
+	logger log.Logger
+	repo   Repository
 }
 
 // NewService creates a new authentication service.
-func NewService(signingKey string, tokenExpiration int, repo Repository, logger log.Logger) Service {
-	return service{signingKey, tokenExpiration, logger, repo}
+func NewService(cfg *config.Config, repo Repository, logger log.Logger) Service {
+	return service{cfg, logger, repo}
 }
 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
@@ -88,13 +88,12 @@ func (s service) generateJWT(user entity.User) (string, error) {
 				Subject:   user.Name,
 				Audience:  "all",
 				IssuedAt:  time.Now().Unix(),
-				ExpiresAt: time.Now().Add(time.Duration(s.tokenExpiration) * time.Minute).Unix(),
+				ExpiresAt: time.Now().Add(time.Duration(s.cfg.Jwt.AccessExpiration) * time.Minute).Unix(),
 				Id:        uuid.NewString(),
 			},
 		},
 	)
 
-	tokenStr, err := tokenObj.SignedString([]byte(s.signingKey))
+	tokenStr, err := tokenObj.SignedString([]byte(s.cfg.Jwt.AccessSigningKey))
 	return tokenStr, err
-
 }

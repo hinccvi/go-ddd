@@ -2,11 +2,9 @@ package log
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"time"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -121,27 +119,4 @@ func (l *logger) With(ctx context.Context, args ...interface{}) Logger {
 		return &logger{l.SugaredLogger.With(args...)}
 	}
 	return l
-}
-
-// WithRequest returns a context which knows the request ID and correlation ID in the given request.
-func WithRequest(ctx context.Context, req *http.Request) context.Context {
-	id := getRequestID(req)
-	if id == "" {
-		id = uuid.New().String()
-	}
-	ctx = context.WithValue(ctx, RequestIDKey, id)
-	if id := getCorrelationID(req); id != "" {
-		ctx = context.WithValue(ctx, CorrelationIDKey, id)
-	}
-	return ctx
-}
-
-// getCorrelationID extracts the correlation ID from the HTTP request
-func getCorrelationID(req *http.Request) string {
-	return req.Header.Get("X-Correlation-ID")
-}
-
-// getRequestID extracts the correlation ID from the HTTP request
-func getRequestID(req *http.Request) string {
-	return req.Header.Get("X-Request-ID")
 }

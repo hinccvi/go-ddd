@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
@@ -111,6 +112,17 @@ func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.
 
 	e.Use(
 		accesslog.Handler(*logger),
+
+		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
+			Generator: func() string {
+				u, err := uuid.NewRandom()
+				for err != nil {
+					u, err = uuid.NewRandom()
+				}
+
+				return u.String()
+			},
+		}),
 	)
 
 	authHandler := middleware.JWTWithConfig(middleware.JWTConfig{
@@ -125,12 +137,11 @@ func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.
 	healthcheck.RegisterHandlers(
 		defaultGroup,
 		Version,
-		authHandler,
 	)
 
 	auth.RegisterHandlers(
 		defaultGroup,
-		auth.NewService(cfg.Jwt.AccessSigningKey, cfg.Jwt.AccessExpiration, auth.NewRepository(dbx, *logger), *logger),
+		auth.NewService(cfg, auth.NewRepository(dbx, *logger), *logger),
 		*logger,
 	)
 
