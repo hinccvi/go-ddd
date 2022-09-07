@@ -12,7 +12,7 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-func Connect(mode string, cfg config.Config) (*gorm.DB, error) {
+func Connect(mode string, cfg *config.Config) (*gorm.DB, error) {
 	// Disable gorm logging if local environment
 	var gLogger gormlogger.Interface
 	if mode == "local" {

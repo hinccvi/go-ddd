@@ -11,21 +11,21 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck"
+	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/accesslog"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	rds "github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/redis"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	echoSwagger "github.com/swaggo/echo-swagger"
 	_ "github.com/swaggo/echo-swagger/example/docs"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -33,45 +33,28 @@ var Version = "1.0.0"
 
 var flagMode = flag.String("mode", "local", "environment")
 
-// @title Swagger Example API
-// @version 1.1
-// @description This is a sample server Petstore server.
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8022
-// @BasePath /v1
 func main() {
 	flag.Parse()
 
 	// create root logger tagged with server version
-	logger := log.New(*flagMode).With(context.TODO(), "version", Version)
+	logger := log.New(*flagMode, zap.ErrorLevel).With(context.TODO(), "version", Version)
 
 	// load application configurations
 	cfg, err := config.Load(*flagMode)
 	if err != nil {
-		logger.Errorf("failed to load application configuration: %s", err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
 
 	// connect to database
-	dbx, err := db.Connect(*flagMode, cfg)
+	dbx, err := db.Connect(*flagMode, &cfg)
 	if err != nil {
-		logger.Error(err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
 
 	// connect to redis
 	rds, err := rds.Connect(cfg)
 	if err != nil {
-		logger.Error(err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
 
 	server := &http.Server{
@@ -83,8 +66,7 @@ func main() {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error(err)
-			os.Exit(1)
+			logger.Fatal(err)
 		}
 	}()
 
@@ -97,8 +79,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Error(err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
 
 	logger.Info("Server exiting")
@@ -108,22 +89,9 @@ func main() {
 func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.DB, cfg *config.Config) *echo.Echo {
 	e := echo.New()
 
-	e.HTTPErrorHandler = errors.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(*logger)
+	e.HTTPErrorHandler = m.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(*logger)
 
-	e.Use(
-		accesslog.Handler(*logger),
-
-		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
-			Generator: func() string {
-				u, err := uuid.NewRandom()
-				for err != nil {
-					u, err = uuid.NewRandom()
-				}
-
-				return u.String()
-			},
-		}),
-	)
+	e.Use(buildMiddleware()...)
 
 	authHandler := middleware.JWTWithConfig(middleware.JWTConfig{
 		Claims:     &auth.JwtCustomClaims{},
@@ -131,8 +99,6 @@ func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.
 	})
 
 	defaultGroup := e.Group("")
-
-	defaultGroup.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	healthcheck.RegisterHandlers(
 		defaultGroup,
@@ -153,4 +119,28 @@ func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.
 	)
 
 	return e
+}
+
+// buildMiddleware sets up the middlewre logic and builds a handler.
+func buildMiddleware() []echo.MiddlewareFunc {
+	var middlewares []echo.MiddlewareFunc
+	logger := log.New(*flagMode, zap.InfoLevel).With(context.TODO(), "version", Version)
+
+	middlewares = append(middlewares,
+
+		// Recover
+		middleware.Recover(),
+
+		// Api access logs
+		accesslog.Handler(logger),
+
+		// X-Request-ID
+		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
+			Generator: func() string {
+				return tools.GenerateUUIDv4().String()
+			},
+		}),
+	)
+
+	return middlewares
 }

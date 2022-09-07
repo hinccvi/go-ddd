@@ -1,4 +1,4 @@
-package errors
+package middleware
 
 import (
 	"errors"
@@ -63,10 +63,12 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			}
 		}
 
+		l := logger.With(c.Request().Context(), "api", c.Request().RequestURI)
 		code := he.Code
 		message := he.Message
+
 		if _, ok := he.Message.(string); ok {
-			logger.With(c.Request().Context()).Error(err)
+			l.Error(he)
 		}
 
 		// Send response
@@ -79,7 +81,7 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 				}{message.(string)})
 			}
 			if err != nil {
-				c.Echo().Logger.Error(err)
+				l.Error(he)
 			}
 		}
 	}

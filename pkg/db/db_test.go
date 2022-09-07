@@ -18,7 +18,7 @@ func TestConnect(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, reflect.DeepEqual(config.Config{}, cfg))
 
-	db, err := Connect(*flagMode, cfg)
+	db, err := Connect(*flagMode, &cfg)
 	assert.NotNil(t, db)
 	assert.Nil(t, err)
 }

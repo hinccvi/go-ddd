@@ -9,8 +9,8 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
-	errs "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"gorm.io/gorm"
 )
@@ -57,7 +57,7 @@ func (s service) Login(ctx context.Context, username, password string) (string, 
 	if user := s.authenticate(ctx, username, password); !reflect.DeepEqual(user, &entity.User{}) {
 		return s.generateJWT(user)
 	}
-	return "", errs.Unauthorized("incorrect username or password")
+	return "", constants.ErrInvalidCredentials
 }
 
 // authenticate authenticates a user using username and password.
