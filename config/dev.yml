@@ -3,25 +3,21 @@ app:
   port: 8022
 
 jwt:
-  jwt_signing_key: 4AYDipIpozCCL51ETa7RksNTh/t6yvnQTKGW9ECkF/Loje8xzJH3xyQxgovNB4t3oS5iH+iDm5mlygssd6Feaw==
-  jwt_expiration: 72
-
-log:
-  file_name: ./app.log
-  max_size: 500
-  max_age: 30
-  max_backup: 7
+  access_signing_key: E4IiEcW02N4N2HKWnUjA6KxwrrrJME4SrO2FHDN0CDhHUfqjDmIiAlIoXMnG9brY
+  access_expiration: 5
+  refresh_signing_key: KQciMyZms5nBhiEwABX9srXPVCR9PFnka3Ci3SseB4XAjBU4OTVIj1jat5oLvhCv
+  refresh_expiration: 10080
 
 db:
   host: "127.0.0.1"
   port: 5432
-  user: docker
-  password: docker
-  dbname: docker
+  user: alex
+  password: testing
+  dbname: test
 
 redis:
   host: "127.0.0.1"
   port: 6379
-  password: redis
+  password: testing
   db: 0
   pool_size: 500

@@ -1,69 +1,86 @@
 package errors
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	"github.com/labstack/echo/v4"
 )
 
-func Handler(logger log.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
+type (
+	httpErrorHandler struct {
+		statusCodes map[error]int
+	}
+)
 
-		lastErr := c.Errors.Last()
-		if lastErr == nil {
-			return
-		}
-
-		logger.With(c.Request.Context()).Error(zap.Error(lastErr))
-
-		status := 0
-		resp := buildErrorResponse(lastErr)
-
-		switch resp.Code {
-		case 400:
-			fallthrough
-		case 401:
-			fallthrough
-		case 403:
-			fallthrough
-		case 404:
-			fallthrough
-		case 500:
-			status = resp.Code
-		default:
-			status = http.StatusBadRequest
-		}
-
-		c.JSON(status, resp)
+func NewHttpErrorHandler(errorStatusCodeMaps map[error]int) *httpErrorHandler {
+	return &httpErrorHandler{
+		statusCodes: errorStatusCodeMaps,
 	}
 }
 
-// buildErrorResponse builds an error response from an error.
-func buildErrorResponse(err *gin.Error) ErrorResponse {
-	switch e := err.Err.(type) {
-	case validator.ValidationErrors:
-		return InvalidInput(404, e[len(e)-1].Field()+" "+e[len(e)-1].Tag())
-	case *json.SyntaxError:
-		return InvalidInput(404, "Invalid JSON format")
-	case ErrorResponse:
-		return e
+func unwrapRecursive(err error) error {
+	var originalErr = err
+
+	for originalErr != nil {
+		var internalErr = errors.Unwrap(originalErr)
+
+		if internalErr == nil {
+			break
+		}
+
+		originalErr = internalErr
 	}
 
-	if errors.Is(err, strconv.ErrSyntax) {
-		return InvalidInput(404, "Invalid syntax")
+	return originalErr
+}
+
+func (eh *httpErrorHandler) GetStatusCode(err error) int {
+	for key, value := range eh.statusCodes {
+		if errors.Is(err, key) {
+			return value
+		}
 	}
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return NotFound(err.Error())
-	}
+	return http.StatusInternalServerError
+}
 
-	return InternalServerError()
+func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Context) {
+	return func(err error, c echo.Context) {
+		he, ok := err.(*echo.HTTPError)
+		if ok {
+			if he.Internal != nil {
+				if herr, ok := he.Internal.(*echo.HTTPError); ok {
+					he = herr
+				}
+			}
+		} else {
+			he = &echo.HTTPError{
+				Code:    eh.GetStatusCode(err),
+				Message: unwrapRecursive(err).Error(),
+			}
+		}
+
+		code := he.Code
+		message := he.Message
+		if _, ok := he.Message.(string); ok {
+			logger.With(c.Request().Context()).Error(err)
+		}
+
+		// Send response
+		if !c.Response().Committed {
+			if c.Request().Method == http.MethodHead {
+				err = c.NoContent(he.Code)
+			} else {
+				err = tools.RespOkWithData(c, code, tools.MsgError, struct {
+					Error string `json:"error"`
+				}{message.(string)})
+			}
+			if err != nil {
+				c.Echo().Logger.Error(err)
+			}
+		}
+	}
 }

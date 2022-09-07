@@ -3,16 +3,17 @@ package tools
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 )
 
 type message string
 
 const (
-	Success message = "success"
-	Created message = "created"
-	Updated message = "updated"
-	Deleted message = "deleted"
+	MsgSuccess message = "success"
+	MsgCreated message = "created"
+	MsgUpdated message = "updated"
+	MsgDeleted message = "deleted"
+	MsgError   message = "error"
 )
 
 type response struct {
@@ -21,17 +22,27 @@ type response struct {
 	Data    interface{} `json:"data"`
 }
 
-func RespOkWithData[I any](c *gin.Context, msg message, i I) {
-	c.JSON(http.StatusOK, response{
-		Code:    http.StatusOK,
+func RespOkWithData[I any](c echo.Context, code int, msg message, i I) error {
+	status := http.StatusBadRequest
+	if code < 999 {
+		status = code
+	}
+
+	return c.JSON(status, response{
+		Code:    code,
 		Message: string(msg),
 		Data:    i,
 	})
 }
 
-func RespOk(c *gin.Context, msg string) {
-	c.JSON(http.StatusOK, response{
-		Code:    http.StatusOK,
-		Message: msg,
+func RespOk(c echo.Context, code int, msg message) error {
+	status := http.StatusBadRequest
+	if code < 999 {
+		status = code
+	}
+
+	return c.JSON(status, response{
+		Code:    code,
+		Message: string(msg),
 	})
 }

@@ -1,31 +1,31 @@
 package auth
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	"github.com/labstack/echo/v4"
 )
 
-func RegisterHandlers(dg *gin.RouterGroup, service Service, logger log.Logger) {
-	dg.POST("/login", login(service, logger))
+func RegisterHandlers(g *echo.Group, service Service, logger log.Logger) {
+	g.POST("/login", login(service, logger))
 }
 
-func login(service Service, logger log.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
+func login(service Service, logger log.Logger) echo.HandlerFunc {
+	return func(c echo.Context) error {
 		var req loginRequest
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.Error(err)
-			return
+		if err := c.Bind(&req); err != nil {
+			return err
 		}
 
-		token, err := service.Login(c.Request.Context(), req.Name, req.Password)
+		token, err := service.Login(c.Request().Context(), req.Name, req.Password)
 		if err != nil {
-			c.Error(err)
-			return
+			return err
 		}
 
-		tools.RespOkWithData(c, tools.Success, struct {
+		return tools.RespOkWithData(c, http.StatusOK, tools.MsgSuccess, struct {
 			Token string `json:"token"`
 		}{token})
 	}

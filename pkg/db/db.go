@@ -32,11 +32,11 @@ func Connect(mode string, cfg config.Config) (*gorm.DB, error) {
 	// connect to the database
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN: fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Bangkok",
-			cfg.DBConfig.Host,
-			cfg.DBConfig.User,
-			cfg.DBConfig.Password,
-			cfg.DBConfig.DBName,
-			cfg.DBConfig.Port),
+			cfg.DB.Host,
+			cfg.DB.User,
+			cfg.DB.Password,
+			cfg.DB.DBName,
+			cfg.DB.Port),
 	}), &gorm.Config{
 		Logger: gLogger,
 	})

@@ -2,28 +2,56 @@ package accesslog
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-func Handler(logger log.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.Errors.Last() != nil {
-			return
+func Handler(logger log.Logger) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			start := time.Now()
+
+			err := next(c)
+			if err != nil {
+				c.Error(err)
+			}
+
+			req := c.Request()
+			res := c.Response()
+
+			fields := []zapcore.Field{
+				zap.String("remote_ip", c.RealIP()),
+				zap.String("latency", time.Since(start).String()),
+				zap.String("host", req.Host),
+				zap.String("request", fmt.Sprintf("%s %s", req.Method, req.RequestURI)),
+				zap.Int("status", res.Status),
+				zap.Int64("size", res.Size),
+				zap.String("user_agent", req.UserAgent()),
+			}
+
+			id := req.Header.Get(echo.HeaderXRequestID)
+			if id == "" {
+				id = res.Header().Get(echo.HeaderXRequestID)
+			}
+			fields = append(fields, zap.String("request_id", id))
+
+			n := res.Status
+			switch {
+			case n >= 500:
+				logger.Error("Server error", fields)
+			case n >= 400:
+				logger.Warn("Client error", fields)
+			case n >= 300:
+				logger.Info("Redirection", fields)
+			default:
+				logger.Info("Success", fields)
+			}
+
+			return nil
 		}
-
-		start := time.Now()
-
-		ctx := c.Request.Context()
-		ctx = log.WithRequest(ctx, c.Request)
-		c.Request = c.Request.WithContext(ctx)
-
-		c.Next()
-
-		logger.With(ctx, "duration", time.Since(start).Milliseconds(), "status", http.StatusOK).
-			Infof("%s %s %s %d %s", c.Request.Method, c.Request.URL.Path, c.Request.Proto, http.StatusOK, fmt.Sprintf("%dbytes", c.Request.ContentLength))
 	}
 }

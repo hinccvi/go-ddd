@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/errors"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
@@ -21,7 +21,10 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	rds "github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/redis"
-	"github.com/mattn/go-colorable"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
+	_ "github.com/swaggo/echo-swagger/example/docs"
 	"gorm.io/gorm"
 )
 
@@ -29,6 +32,20 @@ var Version = "1.0.0"
 
 var flagMode = flag.String("mode", "local", "environment")
 
+// @title Swagger Example API
+// @version 1.1
+// @description This is a sample server Petstore server.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8022
+// @BasePath /v1
 func main() {
 	flag.Parse()
 
@@ -39,26 +56,26 @@ func main() {
 	cfg, err := config.Load(*flagMode)
 	if err != nil {
 		logger.Errorf("failed to load application configuration: %s", err)
-		os.Exit(-1)
+		os.Exit(1)
 	}
 
 	// connect to database
 	dbx, err := db.Connect(*flagMode, cfg)
 	if err != nil {
 		logger.Error(err)
-		os.Exit(-1)
+		os.Exit(1)
 	}
 
 	// connect to redis
 	rds, err := rds.Connect(cfg)
 	if err != nil {
 		logger.Error(err)
-		os.Exit(-1)
+		os.Exit(1)
 	}
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.AppConfig.Port),
-		Handler: buildHandler(*flagMode, logger, rds, dbx, cfg),
+		Addr:    fmt.Sprintf(":%d", cfg.App.Port),
+		Handler: buildHandler(*flagMode, &logger, rds, dbx, &cfg),
 	}
 
 	logger.Infof("Server listening on %s", server.Addr)
@@ -66,7 +83,7 @@ func main() {
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error(err)
-			os.Exit(-1)
+			os.Exit(1)
 		}
 	}()
 
@@ -80,50 +97,48 @@ func main() {
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error(err)
-		os.Exit(-1)
+		os.Exit(1)
 	}
 
 	logger.Info("Server exiting")
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(mode string, logger log.Logger, rds *redis.Client, dbx *gorm.DB, cfg config.Config) *gin.Engine {
-	if mode == "local" {
-		gin.ForceConsoleColor()
-		gin.DefaultWriter = colorable.NewColorableStdout()
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
+func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.DB, cfg *config.Config) *echo.Echo {
+	e := echo.New()
 
-	e := gin.Default()
+	e.HTTPErrorHandler = errors.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(*logger)
+
 	e.Use(
-		accesslog.Handler(logger),
-		errors.Handler(logger),
+		accesslog.Handler(*logger),
 	)
-	e.NoRoute(func(c *gin.Context) {
-		c.Error(errors.NotFound("resource not found"))
+
+	authHandler := middleware.JWTWithConfig(middleware.JWTConfig{
+		Claims:     &auth.JwtCustomClaims{},
+		SigningKey: []byte(cfg.Jwt.AccessSigningKey),
 	})
 
-	authHandler := auth.Handler(cfg.JwtConfig.AccessSigningKey)
+	defaultGroup := e.Group("")
 
-	defaultRouterGroup := e.Group("")
+	defaultGroup.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	healthcheck.RegisterHandlers(
-		defaultRouterGroup,
+		defaultGroup,
 		Version,
+		authHandler,
 	)
 
 	auth.RegisterHandlers(
-		defaultRouterGroup,
-		auth.NewService(cfg.JwtConfig.AccessSigningKey, cfg.JwtConfig.AccessExpiration, auth.NewRepository(dbx, logger), logger),
-		logger,
+		defaultGroup,
+		auth.NewService(cfg.Jwt.AccessSigningKey, cfg.Jwt.AccessExpiration, auth.NewRepository(dbx, *logger), *logger),
+		*logger,
 	)
 
 	user.RegisterHandlers(
-		defaultRouterGroup,
-		user.NewService(rds, user.NewRepository(dbx, logger), logger),
+		defaultGroup,
+		user.NewService(rds, user.NewRepository(dbx, *logger), *logger),
+		*logger,
 		authHandler,
-		logger,
 	)
 
 	return e

@@ -12,12 +12,12 @@ func Connect(cfg config.Config) (*redis.Client, error) {
 	rds := redis.NewClient(
 		&redis.Options{
 			Addr: fmt.Sprintf("%s:%d",
-				cfg.RedisConfig.Host,
-				cfg.RedisConfig.Port,
+				cfg.Redis.Host,
+				cfg.Redis.Port,
 			),
-			Password: cfg.RedisConfig.Password,
-			DB:       cfg.RedisConfig.DB,
-			PoolSize: cfg.RedisConfig.PoolSize,
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+			PoolSize: cfg.Redis.PoolSize,
 		})
 
 	_, err := rds.Ping(context.Background()).Result()

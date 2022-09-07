@@ -13,7 +13,7 @@ db:
   port: 5432
   user: alex
   password: testing
-  dbname: postgres
+  dbname: test
 
 redis:
   host: "127.0.0.1"

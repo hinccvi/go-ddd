@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -35,7 +34,7 @@ type Data struct {
 	UserName string
 }
 
-type MyCustomClaims struct {
+type JwtCustomClaims struct {
 	Data
 	jwt.StandardClaims
 }
@@ -82,7 +81,7 @@ func (s service) authenticate(ctx context.Context, name, password string) entity
 func (s service) generateJWT(user entity.User) (string, error) {
 	tokenObj := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		MyCustomClaims{
+		JwtCustomClaims{
 			Data{user.ID, user.Name},
 			jwt.StandardClaims{
 				Issuer:    "app",
@@ -95,7 +94,6 @@ func (s service) generateJWT(user entity.User) (string, error) {
 		},
 	)
 
-	fmt.Println(s.signingKey)
 	tokenStr, err := tokenObj.SignedString([]byte(s.signingKey))
 	return tokenStr, err
 

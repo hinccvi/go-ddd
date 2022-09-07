@@ -24,6 +24,8 @@ type Logger interface {
 	Debug(args ...interface{})
 	// Info uses fmt.Sprint to construct and log a message at INFO level
 	Info(args ...interface{})
+	// Error uses fmt.Sprint to construct and log a message at WARN level
+	Warn(args ...interface{})
 	// Error uses fmt.Sprint to construct and log a message at ERROR level
 	Error(args ...interface{})
 
@@ -31,6 +33,8 @@ type Logger interface {
 	Debugf(format string, args ...interface{})
 	// Infof uses fmt.Sprintf to construct and log a message at INFO level
 	Infof(format string, args ...interface{})
+	// Errorf uses fmt.Sprintf to construct and log a message at WARN level
+	Warnf(format string, args ...interface{})
 	// Errorf uses fmt.Sprintf to construct and log a message at ERROR level
 	Errorf(format string, args ...interface{})
 }
@@ -66,9 +70,9 @@ func New(mode string) Logger {
 	c := new(zapcore.Core)
 
 	if mode == "local" {
-		*c = zapcore.NewTee(zapcore.NewCore(Encoder(mode), zapcore.Lock(os.Stdout), zap.DebugLevel))
+		*c = zapcore.NewTee(zapcore.NewCore(Encoder(mode), zapcore.Lock(os.Stdout), zap.InfoLevel))
 	} else {
-		*c = zapcore.NewTee(zapcore.NewCore(Encoder(mode), WriteSyncer(), zap.DebugLevel))
+		*c = zapcore.NewTee(zapcore.NewCore(Encoder(mode), WriteSyncer(), zap.ErrorLevel))
 	}
 
 	l := zap.New(*c, zap.AddCaller(), zap.AddCallerSkip(0))

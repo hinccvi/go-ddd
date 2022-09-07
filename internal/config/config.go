@@ -8,18 +8,19 @@ import (
 )
 
 type Config struct {
-	AppConfig struct {
-		Port int `mapstructure:"port"`
+	App struct {
+		App  string `mapstructure:"app"`
+		Port int    `mapstructure:"port"`
 	} `mapstructure:"app"`
 
-	JwtConfig struct {
+	Jwt struct {
 		AccessSigningKey  string `mapstructure:"access_signing_key"`
 		AccessExpiration  int    `mapstructure:"access_expiration"`
 		RefreshSigningKey string `mapstructure:"refresh_signing_key"`
 		RefreshExpiration int    `mapstructure:"refresh_expiration"`
 	} `mapstructure:"jwt"`
 
-	DBConfig struct {
+	DB struct {
 		Host     string `mapstructure:"host"`
 		User     string `mapstructure:"user"`
 		Password string `mapstructure:"password"`
@@ -27,7 +28,7 @@ type Config struct {
 		Port     int    `mapstructure:"port"`
 	} `mapstructure:"db"`
 
-	RedisConfig struct {
+	Redis struct {
 		Host     string `mapstructure:"host"`
 		Port     int    `mapstructure:"port"`
 		Password string `mapstructure:"password"`
