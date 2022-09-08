@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v8"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
@@ -78,6 +79,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Fatal(err)
 	}
@@ -92,6 +94,8 @@ func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.
 	e.HTTPErrorHandler = m.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(*logger)
 
 	e.Use(buildMiddleware()...)
+
+	e.Validator = &m.CustomValidator{Validator: validator.New()}
 
 	authHandler := middleware.JWTWithConfig(middleware.JWTConfig{
 		Claims:     &auth.JwtCustomClaims{},

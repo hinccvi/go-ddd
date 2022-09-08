@@ -33,7 +33,7 @@ type resource struct {
 func (r resource) Get(c echo.Context) error {
 	var req getOrDeleteUserRequest
 
-	if err := c.Bind(&req); err != nil {
+	if err := tools.Validator(c, req); err != nil {
 		return err
 	}
 
@@ -48,7 +48,7 @@ func (r resource) Get(c echo.Context) error {
 func (r resource) Query(c echo.Context) error {
 	var req queryUserRequest
 
-	if err := c.Bind(&req); err != nil {
+	if err := tools.Validator(c, req); err != nil {
 		return err
 	}
 
@@ -76,11 +76,13 @@ func (r resource) Count(c echo.Context) error {
 func (r resource) Create(c echo.Context) error {
 	var req createUserRequest
 
-	if err := c.Bind(&req); err != nil {
+	if err := tools.Validator(c, req); err != nil {
 		return err
 	}
 
-	user, err := r.service.Create(c.Request().Context(), req)
+	ctx := tools.DefaultCancelContext()
+
+	user, err := r.service.Create(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -91,11 +93,13 @@ func (r resource) Create(c echo.Context) error {
 func (r resource) Update(c echo.Context) error {
 	var req updateUserRequest
 
-	if err := c.Bind(&req); err != nil {
+	if err := tools.Validator(c, req); err != nil {
 		return err
 	}
 
-	user, err := r.service.Update(c.Request().Context(), req)
+	ctx := tools.DefaultCancelContext()
+
+	user, err := r.service.Update(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -106,11 +110,13 @@ func (r resource) Update(c echo.Context) error {
 func (r resource) Delete(c echo.Context) error {
 	var req getOrDeleteUserRequest
 
-	if err := c.Bind(&req); err != nil {
+	if err := tools.Validator(c, req); err != nil {
 		return err
 	}
 
-	user, err := r.service.Delete(c.Request().Context(), req)
+	ctx := tools.DefaultCancelContext()
+
+	user, err := r.service.Delete(ctx, req)
 	if err != nil {
 		return err
 	}

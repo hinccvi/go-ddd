@@ -6,7 +6,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type message string
+type (
+	message  string
+	response struct {
+		Code    int         `json:"code"`
+		Message string      `json:"message"`
+		Data    interface{} `json:"data"`
+	}
+)
 
 const (
 	MsgSuccess message = "success"
@@ -15,12 +22,6 @@ const (
 	MsgDeleted message = "deleted"
 	MsgError   message = "error"
 )
-
-type response struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
-}
 
 func generateStatusCode(code int) int {
 	if code > 999 {
