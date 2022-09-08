@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"gorm.io/gorm"
 )
 
 // Service encapsulates the authentication logic.
@@ -72,9 +70,6 @@ func (s service) authenticate(ctx context.Context, name, password string) models
 
 	user, err := s.repo.GetUserByUsernameAndPassword(ctx, arg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logger.Infof("authentication failed")
-		}
 		return *new(models.User)
 	}
 
