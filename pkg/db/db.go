@@ -1,49 +1,18 @@
 package db
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"time"
+	"context"
 
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	gormlogger "gorm.io/gorm/logger"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
+	"github.com/jackc/pgx/v4"
 )
 
-func Connect(mode string, cfg *config.Config) (*gorm.DB, error) {
-	// Disable gorm logging if local environment
-	var gLogger gormlogger.Interface
-	if mode == "local" {
-		gLogger = gormlogger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
-			gormlogger.Config{
-				SlowThreshold:             time.Second,
-				LogLevel:                  gormlogger.Info,
-				IgnoreRecordNotFoundError: false,
-				Colorful:                  true,
-			},
-		)
-	} else {
-		gLogger = gormlogger.Default.LogMode(gormlogger.Silent)
-	}
-
-	// connect to the database
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN: fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Bangkok",
-			cfg.DB.Host,
-			cfg.DB.User,
-			cfg.DB.Password,
-			cfg.DB.DBName,
-			cfg.DB.Port),
-	}), &gorm.Config{
-		Logger: gLogger,
-	})
-
+func Connect(mode string, cfg *config.Config) (models.DBTX, error) {
+	pgx, err := pgx.Connect(context.Background(), cfg.DB.Url)
 	if err != nil {
-		return &gorm.DB{}, err
+		return nil, err
 	}
 
-	return db, nil
+	return pgx, nil
 }

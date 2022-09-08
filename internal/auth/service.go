@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"gorm.io/gorm"
 )
@@ -54,7 +54,7 @@ func NewService(cfg *config.Config, repo Repository, logger log.Logger) Service 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
 // Otherwise, an error is returned.
 func (s service) Login(ctx context.Context, username, password string) (string, error) {
-	if user := s.authenticate(ctx, username, password); !reflect.DeepEqual(user, &entity.User{}) {
+	if user := s.authenticate(ctx, username, password); !reflect.DeepEqual(user, &models.User{}) {
 		return s.generateJWT(user)
 	}
 	return "", constants.ErrInvalidCredentials
@@ -62,15 +62,20 @@ func (s service) Login(ctx context.Context, username, password string) (string, 
 
 // authenticate authenticates a user using username and password.
 // If name and password are correct, an identity is returned. Otherwise, nil is returned.
-func (s service) authenticate(ctx context.Context, name, password string) entity.User {
+func (s service) authenticate(ctx context.Context, name, password string) models.User {
 	logger := s.logger.With(ctx, "user", name)
 
-	user, err := s.repo.GetUserByUsernameAndPassword(ctx, name, password)
+	arg := &models.GetByUsernameAndPasswordParams{
+		Username: name,
+		Password: password,
+	}
+
+	user, err := s.repo.GetUserByUsernameAndPassword(ctx, arg)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Infof("authentication failed")
 		}
-		return *new(entity.User)
+		return *new(models.User)
 	}
 
 	logger.Infof("authentication successful")
@@ -78,14 +83,14 @@ func (s service) authenticate(ctx context.Context, name, password string) entity
 }
 
 // generateJWT generates a JWT that encodes an identity.
-func (s service) generateJWT(user entity.User) (string, error) {
+func (s service) generateJWT(user models.User) (string, error) {
 	tokenObj := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		JwtCustomClaims{
-			Data{user.ID, user.Name},
+			Data{user.ID.String(), user.Username},
 			jwt.StandardClaims{
 				Issuer:    "app",
-				Subject:   user.Name,
+				Subject:   user.Username,
 				Audience:  "all",
 				IssuedAt:  time.Now().Unix(),
 				ExpiresAt: time.Now().Add(time.Duration(s.cfg.Jwt.AccessExpiration) * time.Minute).Unix(),

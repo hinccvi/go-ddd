@@ -17,6 +17,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck"
 	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/accesslog"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
@@ -27,7 +28,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/swaggo/echo-swagger/example/docs"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
 var Version = "1.0.0"
@@ -60,7 +60,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.App.Port),
-		Handler: buildHandler(*flagMode, &logger, rds, dbx, &cfg),
+		Handler: buildHandler(*flagMode, &logger, rds, &dbx, &cfg),
 	}
 
 	logger.Infof("Server listening on %s", server.Addr)
@@ -88,7 +88,7 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *gorm.DB, cfg *config.Config) *echo.Echo {
+func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *models.DBTX, cfg *config.Config) *echo.Echo {
 	e := echo.New()
 
 	e.HTTPErrorHandler = m.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(*logger)

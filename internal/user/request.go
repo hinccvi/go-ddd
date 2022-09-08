@@ -1,23 +1,25 @@
 package user
 
+import "github.com/google/uuid"
+
 type (
 	getOrDeleteUserRequest struct {
-		Id string `form:"id" validate:"required" `
+		Id *uuid.UUID `form:"id" validate:"required"`
 	}
 
 	queryUserRequest struct {
-		Limit  int  `binding:"required" form:"limit"`
-		Offset *int `binding:"required" form:"offset"`
+		Limit  int  `form:"limit" validate:"required"`
+		Offset *int `form:"offset" validate:"required"`
 	}
 
 	createUserRequest struct {
-		Name     string `binding:"required" json:"name"`
-		Password string `binding:"required" json:"password"`
+		Username string `json:"username" validate:"required"`
+		Password string `json:"password" validate:"required"`
 	}
 
 	updateUserRequest struct {
-		Id       string `binding:"required" json:"id"`
-		Name     string `binding:"required" json:"name"`
-		Password string `binding:"required" json:"password"`
+		Id       string `json:"id" validate:"required"`
+		Name     string `json:"name" validate:"required"`
+		Password string `json:"password" validate:"required"`
 	}
 )

@@ -7,7 +7,7 @@ func Validator[I any](c echo.Context, i I) error {
 		return err
 	}
 
-	if err := c.Validate(i); err != nil {
+	if err := c.Validate(&i); err != nil {
 		return err
 	}
 

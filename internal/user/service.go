@@ -5,23 +5,23 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 )
 
 // Service encapsulates usecase logic for user.
 type Service interface {
-	Get(ctx context.Context, req getOrDeleteUserRequest) (User, error)
+	Get(ctx context.Context, id *uuid.UUID) (User, error)
 	Query(ctx context.Context, req queryUserRequest) ([]User, error)
 	Count(ctx context.Context) (int64, error)
-	Create(ctx context.Context, req createUserRequest) (User, error)
+	Create(ctx context.Context, arg *models.CreateUserParams) (User, error)
 	Update(ctx context.Context, req updateUserRequest) (User, error)
-	Delete(ctx context.Context, req getOrDeleteUserRequest) (User, error)
+	Delete(ctx context.Context, id *uuid.UUID) (User, error)
 }
 
 // User represents the data about a user.
 type User struct {
-	entity.User
+	models.User
 }
 
 type service struct {
@@ -35,8 +35,8 @@ func NewService(rds *redis.Client, repo Repository, logger log.Logger) Service {
 	return service{rds, repo, logger}
 }
 
-func (s service) Get(ctx context.Context, req getOrDeleteUserRequest) (User, error) {
-	item, err := s.repo.Get(ctx, req.Id)
+func (s service) Get(ctx context.Context, id *uuid.UUID) (User, error) {
+	item, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return User{}, err
 	}
@@ -62,45 +62,24 @@ func (s service) Count(ctx context.Context) (int64, error) {
 	return s.repo.Count(ctx)
 }
 
-func (s service) Create(ctx context.Context, req createUserRequest) (User, error) {
-	id := uuid.NewString()
-	err := s.repo.Create(ctx, entity.User{
-		ID:       id,
-		Name:     req.Name,
-		Password: req.Password,
-	})
+func (s service) Create(ctx context.Context, arg *models.CreateUserParams) (User, error) {
+	user, err := s.repo.Create(ctx, arg)
 	if err != nil {
 		return User{}, err
 	}
 
-	return s.Get(ctx, getOrDeleteUserRequest{id})
+	return User{user}, nil
 }
 
 func (s service) Update(ctx context.Context, req updateUserRequest) (User, error) {
-	user, err := s.Get(ctx, getOrDeleteUserRequest{req.Id})
-	if err != nil {
-		return User{}, err
-	}
-
-	user.Name = req.Name
-	user.Password = req.Password
-
-	if err = s.repo.Update(ctx, user.User); err != nil {
-		return user, err
-	}
-
-	return user, nil
+	return User{models.User{}}, s.repo.Update(ctx)
 }
 
-func (s service) Delete(ctx context.Context, req getOrDeleteUserRequest) (User, error) {
-	user, err := s.Get(ctx, req)
+func (s service) Delete(ctx context.Context, id *uuid.UUID) (User, error) {
+	user, err := s.repo.Delete(ctx, id)
 	if err != nil {
 		return User{}, err
 	}
 
-	if err = s.repo.Delete(ctx, user.User); err != nil {
-		return User{}, err
-	}
-
-	return user, nil
+	return User{user}, nil
 }

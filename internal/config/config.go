@@ -21,11 +21,7 @@ type Config struct {
 	} `mapstructure:"jwt"`
 
 	DB struct {
-		Host     string `mapstructure:"host"`
-		User     string `mapstructure:"user"`
-		Password string `mapstructure:"password"`
-		DBName   string `mapstructure:"dbname"`
-		Port     int    `mapstructure:"port"`
+		Url string `mapstructure:"url"`
 	} `mapstructure:"db"`
 
 	Redis struct {

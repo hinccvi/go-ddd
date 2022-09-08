@@ -9,11 +9,7 @@ jwt:
   refresh_expiration: 10080
 
 db:
-  host: "127.0.0.1"
-  port: 5432
-  user: alex
-  password: testing
-  dbname: test
+  url: "postgresql://alex:testing@localhost:5432/test"
 
 redis:
   host: "127.0.0.1"

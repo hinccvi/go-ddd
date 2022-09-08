@@ -3,6 +3,7 @@ package user
 import (
 	"net/http"
 
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 	"github.com/labstack/echo/v4"
@@ -37,7 +38,7 @@ func (r resource) Get(c echo.Context) error {
 		return err
 	}
 
-	user, err := r.service.Get(c.Request().Context(), req)
+	user, err := r.service.Get(c.Request().Context(), req.Id)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,12 @@ func (r resource) Create(c echo.Context) error {
 
 	ctx := tools.DefaultCancelContext()
 
-	user, err := r.service.Create(ctx, req)
+	arg := &models.CreateUserParams{
+		Username: req.Username,
+		Password: req.Password,
+	}
+
+	user, err := r.service.Create(ctx, arg)
 	if err != nil {
 		return err
 	}
@@ -116,7 +122,7 @@ func (r resource) Delete(c echo.Context) error {
 
 	ctx := tools.DefaultCancelContext()
 
-	user, err := r.service.Delete(ctx, req)
+	user, err := r.service.Delete(ctx, req.Id)
 	if err != nil {
 		return err
 	}
