@@ -21,10 +21,10 @@ RETURNING id, username, created_at, updated_at;
 
 -- name: UpdateUser :one
 UPDATE "user"
-SET username = CASE WHEN sqlc.arg(username)::VARCHAR IS NOT NULL
+SET username = CASE WHEN sqlc.arg(username)::VARCHAR <> ''
                THEN sqlc.arg(username)::VARCHAR
                ELSE username END,
-    password = CASE WHEN sqlc.arg(password)::VARCHAR IS NOT NULL
+    password = CASE WHEN sqlc.arg(password)::VARCHAR <> ''
                THEN sqlc.arg(password)::VARCHAR
                ELSE password END
 WHERE id = $1

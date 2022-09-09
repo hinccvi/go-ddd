@@ -160,10 +160,10 @@ func (q *Queries) ListUser(ctx context.Context, arg *ListUserParams) ([]User, er
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE "user"
-SET username = CASE WHEN $2::VARCHAR IS NOT NULL
+SET username = CASE WHEN $2::VARCHAR <> ''
                THEN $2::VARCHAR
                ELSE username END,
-    password = CASE WHEN $3::VARCHAR IS NOT NULL
+    password = CASE WHEN $3::VARCHAR <> ''
                THEN $3::VARCHAR
                ELSE password END
 WHERE id = $1
