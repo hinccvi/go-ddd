@@ -65,11 +65,13 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 
 		l := logger.With(c.Request().Context(), "api", c.Request().RequestURI)
 		code := he.Code
-		message := he.Message
+		message := ""
 
-		if _, ok := he.Message.(string); ok {
-			l.Error(he)
+		if msg, ok := he.Message.(string); ok {
+			message = msg
 		}
+
+		l.Error(he)
 
 		// Send response
 		if !c.Response().Committed {
@@ -78,8 +80,9 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			} else {
 				err = tools.RespOkWithData(c, code, tools.MsgError, struct {
 					Error string `json:"error"`
-				}{message.(string)})
+				}{message})
 			}
+
 			if err != nil {
 				l.Error(he)
 			}

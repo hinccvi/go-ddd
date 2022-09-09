@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -13,8 +14,12 @@ type CustomValidator struct {
 
 func (cv *CustomValidator) Validate(i interface{}) error {
 	if err := cv.Validator.Struct(i); err != nil {
-		// Optionally, you could return the error to give each route more control over the status code
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		verr := err.(validator.ValidationErrors)
+		field := verr[len(verr)-1].Field()
+		tag := verr[len(verr)-1].Tag()
+		msg := fmt.Sprintf("'%s' %s", field, tag)
+
+		return echo.NewHTTPError(http.StatusBadRequest, msg)
 	}
 	return nil
 }
