@@ -26,7 +26,6 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	_ "github.com/swaggo/echo-swagger/example/docs"
 	"go.uber.org/zap"
 )
 
