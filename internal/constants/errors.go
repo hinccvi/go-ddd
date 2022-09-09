@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+const (
+	MsgSystemError = "system error"
+	MsgBadRequest  = "invalid input"
+)
+
 var (
 	ErrCustomErr          = errors.New("custom error")
 	ErrInvalidCredentials = errors.New("incorrect username or password")

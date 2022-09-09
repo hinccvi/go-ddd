@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v8"
@@ -76,7 +75,7 @@ func main() {
 
 	logger.Info("Server shutting down")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ShutdownTimeoutDuration)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {

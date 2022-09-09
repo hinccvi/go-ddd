@@ -7,15 +7,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 )
 
 // Service encapsulates usecase logic for user.
 type Service interface {
 	Get(ctx context.Context, id *uuid.UUID) (User, error)
-	Query(ctx context.Context, req queryUserRequest) ([]User, error)
+	Query(ctx context.Context, arg *models.ListUserParams) ([]User, error)
 	Count(ctx context.Context) (int64, error)
 	Create(ctx context.Context, arg *models.CreateUserParams) (User, error)
-	Update(ctx context.Context, req updateUserRequest) (User, error)
+	Update(ctx context.Context, arg *models.UpdateUserParams) (User, error)
 	Delete(ctx context.Context, id *uuid.UUID) (User, error)
 }
 
@@ -44,8 +45,8 @@ func (s service) Get(ctx context.Context, id *uuid.UUID) (User, error) {
 	return User{item}, nil
 }
 
-func (s service) Query(ctx context.Context, req queryUserRequest) ([]User, error) {
-	items, err := s.repo.Query(ctx, *req.Offset, req.Limit)
+func (s service) Query(ctx context.Context, arg *models.ListUserParams) ([]User, error) {
+	items, err := s.repo.Query(ctx, arg)
 	if err != nil {
 		return []User{}, err
 	}
@@ -62,17 +63,48 @@ func (s service) Count(ctx context.Context) (int64, error) {
 	return s.repo.Count(ctx)
 }
 
-func (s service) Create(ctx context.Context, arg *models.CreateUserParams) (User, error) {
-	user, err := s.repo.Create(ctx, arg)
+func (s service) Create(ctx context.Context, arg *models.CreateUserParams) (u User, err error) {
+	arg.Password, err = tools.Bcrypt(arg.Password)
 	if err != nil {
 		return User{}, err
+	}
+
+	ur, err := s.repo.Create(ctx, arg)
+	if err != nil {
+		return User{}, err
+	}
+
+	user := models.User{
+		ID:        ur.ID,
+		Username:  ur.Username,
+		CreatedAt: ur.CreatedAt,
+		UpdatedAt: ur.UpdatedAt,
 	}
 
 	return User{user}, nil
 }
 
-func (s service) Update(ctx context.Context, req updateUserRequest) (User, error) {
-	return User{models.User{}}, s.repo.Update(ctx)
+func (s service) Update(ctx context.Context, arg *models.UpdateUserParams) (u User, err error) {
+	if arg.Password != "" {
+		arg.Password, err = tools.Bcrypt(arg.Password)
+		if err != nil {
+			return User{}, err
+		}
+	}
+
+	ur, err := s.repo.Update(ctx, arg)
+	if err != nil {
+		return User{}, err
+	}
+
+	user := models.User{
+		ID:        ur.ID,
+		Username:  ur.Username,
+		CreatedAt: ur.CreatedAt,
+		UpdatedAt: ur.UpdatedAt,
+	}
+
+	return User{user}, nil
 }
 
 func (s service) Delete(ctx context.Context, id *uuid.UUID) (User, error) {

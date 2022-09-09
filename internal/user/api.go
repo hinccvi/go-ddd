@@ -1,8 +1,10 @@
 package user
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
@@ -14,15 +16,18 @@ func RegisterHandlers(g *echo.Group, service Service, logger log.Logger, authHan
 
 	v1 := g.Group("v1")
 	{
-		v1.GET("/get", r.Get)
-		v1.GET("/query", r.Query)
-		v1.GET("/count", r.Count)
-		v1.POST("/create", r.Create)
+		user := v1.Group("/user")
+		{
+			user.GET("/", r.Get)
+			user.GET("/list", r.Query)
+			user.GET("/count", r.Count)
+			user.POST("/", r.Create)
 
-		// v1.Use(authHandler)
+			// user.Use(authHandler)
 
-		v1.PATCH("/update", r.Update)
-		v1.DELETE("/delete", r.Delete)
+			user.PATCH("/", r.Update)
+			user.DELETE("/", r.Delete)
+		}
 	}
 }
 
@@ -34,7 +39,7 @@ type resource struct {
 func (r resource) Get(c echo.Context) error {
 	var req getOrDeleteUserRequest
 
-	if err := tools.Validator(c, req); err != nil {
+	if err := tools.Validator(c, &req); err != nil {
 		return err
 	}
 
@@ -49,11 +54,28 @@ func (r resource) Get(c echo.Context) error {
 func (r resource) Query(c echo.Context) error {
 	var req queryUserRequest
 
-	if err := tools.Validator(c, req); err != nil {
+	if err := tools.Validator(c, &req); err != nil {
 		return err
 	}
 
-	users, err := r.service.Query(c.Request().Context(), req)
+	var (
+		limit  int32
+		offset int32
+	)
+	if req.Limit > 0 {
+		limit = int32(req.Limit)
+	}
+
+	if req.Offset != nil && *req.Offset > 0 {
+		offset = int32(*req.Offset)
+	}
+
+	arg := &models.ListUserParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	users, err := r.service.Query(c.Request().Context(), arg)
 	if err != nil {
 		return err
 	}
@@ -77,16 +99,17 @@ func (r resource) Count(c echo.Context) error {
 func (r resource) Create(c echo.Context) error {
 	var req createUserRequest
 
-	if err := tools.Validator(c, req); err != nil {
+	if err := tools.Validator(c, &req); err != nil {
 		return err
 	}
-
-	ctx := tools.DefaultCancelContext()
 
 	arg := &models.CreateUserParams{
 		Username: req.Username,
 		Password: req.Password,
 	}
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), constants.RequestTimeoutDuration)
+	defer cancel()
 
 	user, err := r.service.Create(ctx, arg)
 	if err != nil {
@@ -99,13 +122,20 @@ func (r resource) Create(c echo.Context) error {
 func (r resource) Update(c echo.Context) error {
 	var req updateUserRequest
 
-	if err := tools.Validator(c, req); err != nil {
+	if err := tools.Validator(c, &req); err != nil {
 		return err
 	}
 
-	ctx := tools.DefaultCancelContext()
+	arg := &models.UpdateUserParams{
+		ID:       *req.Id,
+		Username: req.Username,
+		Password: req.Password,
+	}
 
-	user, err := r.service.Update(ctx, req)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), constants.RequestTimeoutDuration)
+	defer cancel()
+
+	user, err := r.service.Update(ctx, arg)
 	if err != nil {
 		return err
 	}
@@ -116,11 +146,12 @@ func (r resource) Update(c echo.Context) error {
 func (r resource) Delete(c echo.Context) error {
 	var req getOrDeleteUserRequest
 
-	if err := tools.Validator(c, req); err != nil {
+	if err := tools.Validator(c, &req); err != nil {
 		return err
 	}
 
-	ctx := tools.DefaultCancelContext()
+	ctx, cancel := context.WithTimeout(c.Request().Context(), constants.RequestTimeoutDuration)
+	defer cancel()
 
 	user, err := r.service.Delete(ctx, req.Id)
 	if err != nil {

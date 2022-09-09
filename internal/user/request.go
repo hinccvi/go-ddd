@@ -4,12 +4,12 @@ import "github.com/google/uuid"
 
 type (
 	getOrDeleteUserRequest struct {
-		Id *uuid.UUID `form:"id" validate:"required"`
+		Id *uuid.UUID `query:"id" validate:"required"`
 	}
 
 	queryUserRequest struct {
-		Limit  int  `form:"limit" validate:"required"`
-		Offset *int `form:"offset" validate:"required"`
+		Limit  uint32  `query:"limit"`
+		Offset *uint32 `query:"offset"`
 	}
 
 	createUserRequest struct {
@@ -18,8 +18,8 @@ type (
 	}
 
 	updateUserRequest struct {
-		Id       string `json:"id" validate:"required"`
-		Name     string `json:"name" validate:"required"`
-		Password string `json:"password" validate:"required"`
+		Id       *uuid.UUID `json:"id" validate:"required"`
+		Username string     `json:"username"`
+		Password string     `json:"password"`
 	}
 )

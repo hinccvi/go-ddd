@@ -12,9 +12,9 @@ import (
 type Repository interface {
 	Get(ctx context.Context, id *uuid.UUID) (models.User, error)
 	Count(ctx context.Context) (int64, error)
-	Query(ctx context.Context, offset, limit int) ([]models.User, error)
-	Create(ctx context.Context, arg *models.CreateUserParams) (models.User, error)
-	Update(ctx context.Context) error
+	Query(ctx context.Context, arg *models.ListUserParams) ([]models.User, error)
+	Create(ctx context.Context, arg *models.CreateUserParams) (models.CreateUserRow, error)
+	Update(ctx context.Context, arg *models.UpdateUserParams) (models.UpdateUserRow, error)
 	Delete(ctx context.Context, id *uuid.UUID) (models.User, error)
 }
 
@@ -50,10 +50,10 @@ func (r repository) Count(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (r repository) Query(ctx context.Context, offset, limit int) ([]models.User, error) {
+func (r repository) Query(ctx context.Context, arg *models.ListUserParams) ([]models.User, error) {
 	queries := models.New(*r.db)
 
-	users, err := queries.ListUser(ctx)
+	users, err := queries.ListUser(ctx, arg)
 	if err != nil {
 		return make([]models.User, 0), err
 	}
@@ -61,19 +61,26 @@ func (r repository) Query(ctx context.Context, offset, limit int) ([]models.User
 	return users, nil
 }
 
-func (r repository) Create(ctx context.Context, arg *models.CreateUserParams) (models.User, error) {
+func (r repository) Create(ctx context.Context, arg *models.CreateUserParams) (models.CreateUserRow, error) {
 	queries := models.New(*r.db)
 
-	user, err := queries.CreateUser(ctx, *arg)
+	user, err := queries.CreateUser(ctx, arg)
 	if err != nil {
-		return models.User{}, err
+		return models.CreateUserRow{}, err
 	}
 
 	return user, nil
 }
 
-func (r repository) Update(ctx context.Context) error {
-	return nil
+func (r repository) Update(ctx context.Context, arg *models.UpdateUserParams) (models.UpdateUserRow, error) {
+	queries := models.New(*r.db)
+
+	user, err := queries.UpdateUser(ctx, arg)
+	if err != nil {
+		return models.UpdateUserRow{}, err
+	}
+
+	return user, nil
 }
 
 func (r repository) Delete(ctx context.Context, id *uuid.UUID) (models.User, error) {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 	"github.com/labstack/echo/v4"
@@ -21,21 +22,21 @@ func NewHttpErrorHandler(errorStatusCodeMaps map[error]int) *httpErrorHandler {
 	}
 }
 
-func unwrapRecursive(err error) error {
-	var originalErr = err
+// func unwrapRecursive(err error) error {
+// 	var originalErr = err
 
-	for originalErr != nil {
-		var internalErr = errors.Unwrap(originalErr)
+// 	for originalErr != nil {
+// 		var internalErr = errors.Unwrap(originalErr)
 
-		if internalErr == nil {
-			break
-		}
+// 		if internalErr == nil {
+// 			break
+// 		}
 
-		originalErr = internalErr
-	}
+// 		originalErr = internalErr
+// 	}
 
-	return originalErr
-}
+// 	return originalErr
+// }
 
 func (eh *httpErrorHandler) GetStatusCode(err error) int {
 	for key, value := range eh.statusCodes {
@@ -58,20 +59,20 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			}
 		} else {
 			he = &echo.HTTPError{
-				Code:    eh.GetStatusCode(err),
-				Message: unwrapRecursive(err).Error(),
+				Code:     eh.GetStatusCode(err),
+				Message:  constants.MsgSystemError,
+				Internal: err,
 			}
 		}
 
 		l := logger.With(c.Request().Context(), "api", c.Request().RequestURI)
 		code := he.Code
-		message := ""
 
-		if msg, ok := he.Message.(string); ok {
-			message = msg
+		if he.Internal != nil {
+			l.Error(he.Internal.Error())
+		} else {
+			l.Error(he.Message)
 		}
-
-		l.Error(he)
 
 		// Send response
 		if !c.Response().Committed {
@@ -80,7 +81,7 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			} else {
 				err = tools.RespOkWithData(c, code, tools.MsgError, struct {
 					Error string `json:"error"`
-				}{message})
+				}{constants.MsgBadRequest})
 			}
 
 			if err != nil {

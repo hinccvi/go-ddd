@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -28,24 +29,29 @@ INSERT INTO "user" (
 ) VALUES (
   $1, $2
 )
-RETURNING id, username, password, created_at, updated_at, deleted_at
+RETURNING id, username, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Username string
-	Password string
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+type CreateUserRow struct {
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg *CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Password)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
-		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -76,11 +82,11 @@ WHERE username = $1 AND password = $2 LIMIT 1
 `
 
 type GetByUsernameAndPasswordParams struct {
-	Username string
-	Password string
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-func (q *Queries) GetByUsernameAndPassword(ctx context.Context, arg GetByUsernameAndPasswordParams) (User, error) {
+func (q *Queries) GetByUsernameAndPassword(ctx context.Context, arg *GetByUsernameAndPasswordParams) (User, error) {
 	row := q.db.QueryRow(ctx, getByUsernameAndPassword, arg.Username, arg.Password)
 	var i User
 	err := row.Scan(
@@ -115,11 +121,18 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 
 const listUser = `-- name: ListUser :many
 SELECT id, username, password, created_at, updated_at, deleted_at FROM "user"
-ORDER BY name
+ORDER BY username
+LIMIT($1)
+OFFSET($2)
 `
 
-func (q *Queries) ListUser(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUser)
+type ListUserParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListUser(ctx context.Context, arg *ListUserParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, listUser, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -143,4 +156,41 @@ func (q *Queries) ListUser(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE "user"
+SET username = CASE WHEN $2::VARCHAR IS NOT NULL
+               THEN $2::VARCHAR
+               ELSE username END,
+    password = CASE WHEN $3::VARCHAR IS NOT NULL
+               THEN $3::VARCHAR
+               ELSE password END
+WHERE id = $1
+RETURNING id, username, created_at, updated_at
+`
+
+type UpdateUserParams struct {
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Password string    `json:"password"`
+}
+
+type UpdateUserRow struct {
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg *UpdateUserParams) (UpdateUserRow, error) {
+	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Username, arg.Password)
+	var i UpdateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

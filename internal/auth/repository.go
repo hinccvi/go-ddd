@@ -23,7 +23,7 @@ func NewRepository(db *models.DBTX, logger log.Logger) Repository {
 func (r repository) GetUserByUsernameAndPassword(ctx context.Context, arg *models.GetByUsernameAndPasswordParams) (models.User, error) {
 	queries := models.New(*r.db)
 
-	user, err := queries.GetByUsernameAndPassword(ctx, *arg)
+	user, err := queries.GetByUsernameAndPassword(ctx, arg)
 	if err != nil {
 		return models.User{}, err
 	}
