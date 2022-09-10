@@ -9,24 +9,33 @@ import (
 )
 
 func RegisterHandlers(g *echo.Group, service Service, logger log.Logger) {
-	g.POST("/login", login(service, logger))
+	r := &resource{logger, service}
+
+	v1 := g.Group("v1")
+	{
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/login", r.login)
+		}
+	}
 }
 
-func login(service Service, logger log.Logger) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		var req loginRequest
+type resource struct {
+	logger  log.Logger
+	service Service
+}
 
-		if err := c.Bind(&req); err != nil {
-			return err
-		}
+func (r resource) login(c echo.Context) error {
+	var req loginRequest
 
-		token, err := service.Login(c.Request().Context(), req.Name, req.Password)
-		if err != nil {
-			return err
-		}
-
-		return tools.RespOkWithData(c, http.StatusOK, tools.MsgSuccess, struct {
-			Token string `json:"token"`
-		}{token})
+	if err := tools.Validator(c, &req); err != nil {
+		return err
 	}
+
+	resp, err := r.service.Login(c.Request().Context(), req.Username, req.Password)
+	if err != nil {
+		return err
+	}
+
+	return tools.RespOkWithData(c, http.StatusOK, tools.MsgSuccess, resp)
 }

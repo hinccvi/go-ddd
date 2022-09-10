@@ -67,11 +67,17 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 
 		l := logger.With(c.Request().Context(), "api", c.Request().RequestURI)
 		code := he.Code
+		message := ""
 
 		if he.Internal != nil {
+			message = he.Internal.Error()
 			l.Error(he.Internal.Error())
 		} else {
-			l.Error(he.Message)
+			if message, ok = he.Message.(string); ok {
+				l.Error(he.Message)
+			} else {
+				message = constants.MsgBadRequest
+			}
 		}
 
 		// Send response
@@ -81,7 +87,7 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			} else {
 				err = tools.RespOkWithData(c, code, tools.MsgError, struct {
 					Error string `json:"error"`
-				}{constants.MsgBadRequest})
+				}{message})
 			}
 
 			if err != nil {

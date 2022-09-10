@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"reflect"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -11,13 +10,14 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 )
 
 // Service encapsulates the authentication logic.
 type Service interface {
 	// authenticate authenticates a user using username and password.
 	// It returns a JWT token if authentication succeeds. Otherwise, an error is returned.
-	Login(ctx context.Context, username, password string) (string, error)
+	Login(ctx context.Context, username, password string) (loginResponse, error)
 }
 
 // Identity represents an authenticated user identity.
@@ -29,13 +29,12 @@ type Identity interface {
 }
 
 type Data struct {
-	UserId   string
 	UserName string
 }
 
 type JwtCustomClaims struct {
 	Data
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type service struct {
@@ -51,49 +50,68 @@ func NewService(cfg *config.Config, repo Repository, logger log.Logger) Service 
 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
 // Otherwise, an error is returned.
-func (s service) Login(ctx context.Context, username, password string) (string, error) {
-	if user := s.authenticate(ctx, username, password); !reflect.DeepEqual(user, &models.User{}) {
-		return s.generateJWT(user)
+func (s service) Login(ctx context.Context, username, password string) (loginResponse, error) {
+	if user, err := s.authenticate(ctx, username, password); err != nil {
+		return loginResponse{}, err
+	} else {
+		accessToken, err := s.generateJWT(user, "")
+		if err != nil {
+			return loginResponse{}, err
+		}
+
+		refreshToken, err := s.generateJWT(user, "refresh")
+		if err != nil {
+			return loginResponse{}, err
+		}
+
+		return loginResponse{accessToken, refreshToken}, nil
 	}
-	return "", constants.ErrInvalidCredentials
 }
 
 // authenticate authenticates a user using username and password.
 // If name and password are correct, an identity is returned. Otherwise, nil is returned.
-func (s service) authenticate(ctx context.Context, name, password string) models.User {
-	logger := s.logger.With(ctx, "user", name)
+func (s service) authenticate(ctx context.Context, username, password string) (models.GetByUsernameRow, error) {
+	logger := s.logger.With(ctx, "username", username)
 
-	arg := &models.GetByUsernameAndPasswordParams{
-		Username: name,
-		Password: password,
-	}
-
-	user, err := s.repo.GetUserByUsernameAndPassword(ctx, arg)
+	user, err := s.repo.GetUserByUsername(ctx, username)
 	if err != nil {
-		return *new(models.User)
+		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
 	}
 
-	logger.Infof("authentication successful")
-	return user
+	if err := tools.BcryptCompare(password, user.Password); err != nil {
+		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
+	}
+
+	logger.Info("authentication successful")
+
+	return user, nil
 }
 
 // generateJWT generates a JWT that encodes an identity.
-func (s service) generateJWT(user models.User) (string, error) {
-	tokenObj := jwt.NewWithClaims(
+func (s service) generateJWT(user models.GetByUsernameRow, jwtType string) (string, error) {
+	issuedAt := time.Now()
+	expiresAt := issuedAt.Add(time.Duration(s.cfg.Jwt.AccessExpiration) * time.Minute)
+	signingKey := []byte(s.cfg.Jwt.AccessSigningKey)
+
+	if jwtType == "refresh" {
+		expiresAt = issuedAt.Add(time.Duration(s.cfg.Jwt.RefreshExpiration) * time.Minute)
+		signingKey = []byte(s.cfg.Jwt.RefreshSigningKey)
+	}
+
+	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		JwtCustomClaims{
-			Data{user.ID.String(), user.Username},
-			jwt.StandardClaims{
-				Issuer:    "app",
-				Subject:   user.Username,
-				Audience:  "all",
-				IssuedAt:  time.Now().Unix(),
-				ExpiresAt: time.Now().Add(time.Duration(s.cfg.Jwt.AccessExpiration) * time.Minute).Unix(),
-				Id:        uuid.NewString(),
+			Data{user.Username},
+			jwt.RegisteredClaims{
+				Issuer:    s.cfg.App.Name,
+				Subject:   user.ID.String(),
+				Audience:  jwt.ClaimStrings{"all"},
+				IssuedAt:  jwt.NewNumericDate(issuedAt),
+				ExpiresAt: jwt.NewNumericDate(expiresAt),
+				ID:        uuid.NewString(),
 			},
 		},
 	)
 
-	tokenStr, err := tokenObj.SignedString([]byte(s.cfg.Jwt.AccessSigningKey))
-	return tokenStr, err
+	return token.SignedString(signingKey)
 }

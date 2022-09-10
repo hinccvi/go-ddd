@@ -1,5 +1,5 @@
 app:
-  name: app
+  name: sample-app.com
   port: 8022
 
 jwt:

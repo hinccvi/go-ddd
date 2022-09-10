@@ -65,27 +65,22 @@ func (q *Queries) DeleteUser(ctx context.Context, id *uuid.UUID) error {
 	return err
 }
 
-const getByUsernameAndPassword = `-- name: GetByUsernameAndPassword :one
-SELECT id, username, password, created_at, updated_at, deleted_at FROM "user"
-WHERE username = $1 AND password = $2 LIMIT 1
+const getByUsername = `-- name: GetByUsername :one
+SELECT id, username, password FROM "user"
+WHERE username = $1 AND deleted_at IS NULL
+LIMIT 1
 `
 
-type GetByUsernameAndPasswordParams struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type GetByUsernameRow struct {
+	ID       *uuid.UUID `json:"id"`
+	Username string     `json:"username"`
+	Password string     `json:"password"`
 }
 
-func (q *Queries) GetByUsernameAndPassword(ctx context.Context, arg *GetByUsernameAndPasswordParams) (User, error) {
-	row := q.db.QueryRow(ctx, getByUsernameAndPassword, arg.Username, arg.Password)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.Password,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-	)
+func (q *Queries) GetByUsername(ctx context.Context, username string) (GetByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, getByUsername, username)
+	var i GetByUsernameRow
+	err := row.Scan(&i.ID, &i.Username, &i.Password)
 	return i, err
 }
 

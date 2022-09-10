@@ -24,10 +24,12 @@ RETURNING id, username, created_at, updated_at;
 UPDATE "user"
 SET username = CASE WHEN sqlc.arg(username)::VARCHAR <> ''
                THEN sqlc.arg(username)::VARCHAR
-               ELSE username END,
+               ELSE username 
+               END,
     password = CASE WHEN sqlc.arg(password)::VARCHAR <> ''
                THEN sqlc.arg(password)::VARCHAR
-               ELSE password END
+               ELSE password 
+               END
 WHERE id = $1
 RETURNING id, username, created_at, updated_at;
 
@@ -40,6 +42,7 @@ SET deleted_at = (current_timestamp AT TIME ZONE 'UTC')
 WHERE id = $1
 RETURNING id, username, created_at, updated_at, deleted_at;
 
--- name: GetByUsernameAndPassword :one
-SELECT * FROM "user"
-WHERE username = $1 AND password = $2 LIMIT 1;
+-- name: GetByUsername :one
+SELECT id, username, password FROM "user"
+WHERE username = $1 AND deleted_at IS NULL
+LIMIT 1;

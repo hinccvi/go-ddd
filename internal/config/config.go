@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	App struct {
-		App  string `mapstructure:"app"`
+		Name string `mapstructure:"name"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"app"`
 

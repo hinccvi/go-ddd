@@ -8,7 +8,7 @@ import (
 )
 
 type Repository interface {
-	GetUserByUsernameAndPassword(ctx context.Context, arg *models.GetByUsernameAndPasswordParams) (models.User, error)
+	GetUserByUsername(ctx context.Context, username string) (models.GetByUsernameRow, error)
 }
 
 type repository struct {
@@ -20,12 +20,12 @@ func NewRepository(db *models.DBTX, logger log.Logger) Repository {
 	return repository{db, logger}
 }
 
-func (r repository) GetUserByUsernameAndPassword(ctx context.Context, arg *models.GetByUsernameAndPasswordParams) (models.User, error) {
+func (r repository) GetUserByUsername(ctx context.Context, username string) (models.GetByUsernameRow, error) {
 	queries := models.New(*r.db)
 
-	user, err := queries.GetByUsernameAndPassword(ctx, arg)
+	user, err := queries.GetByUsername(ctx, username)
 	if err != nil {
-		return models.User{}, err
+		return models.GetByUsernameRow{}, err
 	}
 
 	return user, nil
