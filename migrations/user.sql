@@ -1,6 +1,7 @@
 -- name: GetUser :one
 SELECT * FROM "user"
-WHERE id = $1 LIMIT 1;
+WHERE id = $1 AND deleted_at IS NULL
+LIMIT 1;
 
 -- name: CountUser :one
 SELECT COUNT(*) FROM "user";
@@ -30,10 +31,14 @@ SET username = CASE WHEN sqlc.arg(username)::VARCHAR <> ''
 WHERE id = $1
 RETURNING id, username, created_at, updated_at;
 
--- name: DeleteUser :one
-DELETE FROM "user"
+-- name: DeleteUser :exec
+DELETE FROM "user" WHERE id = $1;
+
+-- name: SoftDeleteUser :one
+UPDATE "user"
+SET deleted_at = (current_timestamp AT TIME ZONE 'UTC')
 WHERE id = $1
-RETURNING *;
+RETURNING id, username, created_at, updated_at, deleted_at;
 
 -- name: GetByUsernameAndPassword :one
 SELECT * FROM "user"

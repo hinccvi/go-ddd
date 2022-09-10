@@ -12,3 +12,19 @@ sql:
       emit_params_struct_pointers: true
       emit_enum_valid_method: true
       json_tags_case_style: "snake"
+      overrides:
+        - db_type: "uuid"
+          go_type:
+            type: "UUID"
+            import: "github.com/google/uuid"
+            pointer: true
+        - db_type: "pg_catalog.timestamp"
+          go_type:
+            type: "Time"
+            import: "time"
+            pointer: true
+          nullable: true
+        - db_type: "pg_catalog.numeric"
+          go_type:
+            type: "Decimal"
+            import: "github.com/shopspring/decimal"

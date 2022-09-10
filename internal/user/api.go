@@ -127,7 +127,7 @@ func (r resource) Update(c echo.Context) error {
 	}
 
 	arg := &models.UpdateUserParams{
-		ID:       *req.Id,
+		ID:       req.Id,
 		Username: req.Username,
 		Password: req.Password,
 	}

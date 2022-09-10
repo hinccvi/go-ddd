@@ -107,10 +107,18 @@ func (s service) Update(ctx context.Context, arg *models.UpdateUserParams) (u Us
 	return User{user}, nil
 }
 
-func (s service) Delete(ctx context.Context, id *uuid.UUID) (User, error) {
-	user, err := s.repo.Delete(ctx, id)
+func (s service) Delete(ctx context.Context, id *uuid.UUID) (u User, err error) {
+	ur, err := s.repo.Delete(ctx, id)
 	if err != nil {
 		return User{}, err
+	}
+
+	user := models.User{
+		ID:        ur.ID,
+		Username:  ur.Username,
+		CreatedAt: ur.CreatedAt,
+		UpdatedAt: ur.UpdatedAt,
+		DeletedAt: ur.DeletedAt,
 	}
 
 	return User{user}, nil
