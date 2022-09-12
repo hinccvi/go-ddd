@@ -9,7 +9,7 @@ import (
 )
 
 func Connect(mode string, cfg *config.Config) (models.DBTX, error) {
-	pgx, err := pgx.Connect(context.Background(), cfg.DB.Url)
+	pgx, err := pgx.Connect(context.Background(), cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}

@@ -44,7 +44,7 @@ type CreateUserRow struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg *CreateUserParams) (CreateUserRow, error) {
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Password)
 	var i CreateUserRow
 	err := row.Scan(
@@ -116,7 +116,7 @@ type ListUserParams struct {
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) ListUser(ctx context.Context, arg *ListUserParams) ([]User, error) {
+func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]User, error) {
 	rows, err := q.db.Query(ctx, listUser, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
@@ -175,10 +175,12 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE "user"
 SET username = CASE WHEN $2::VARCHAR <> ''
                THEN $2::VARCHAR
-               ELSE username END,
+               ELSE username 
+               END,
     password = CASE WHEN $3::VARCHAR <> ''
                THEN $3::VARCHAR
-               ELSE password END
+               ELSE password 
+               END
 WHERE id = $1
 RETURNING id, username, created_at, updated_at
 `
@@ -196,7 +198,7 @@ type UpdateUserRow struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg *UpdateUserParams) (UpdateUserRow, error) {
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
 	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Username, arg.Password)
 	var i UpdateUserRow
 	err := row.Scan(

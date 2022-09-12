@@ -20,9 +20,7 @@ type Config struct {
 		RefreshExpiration int    `mapstructure:"refresh_expiration"`
 	} `mapstructure:"jwt"`
 
-	DB struct {
-		Url string `mapstructure:"url"`
-	} `mapstructure:"db"`
+	Dsn string `mapstructure:"dsn"`
 
 	Redis struct {
 		Host     string `mapstructure:"host"`

@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	MsgSystemError = "system error"
-	MsgBadRequest  = "invalid input"
+	MsgSystemError    = "system error"
+	MsgBadRequest     = "invalid input"
+	MsgRequestTimeout = "Request timeout"
 )
 
 var (

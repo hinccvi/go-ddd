@@ -12,16 +12,16 @@ type Repository interface {
 }
 
 type repository struct {
-	db     *models.DBTX
+	db     models.DBTX
 	logger log.Logger
 }
 
-func NewRepository(db *models.DBTX, logger log.Logger) Repository {
+func NewRepository(db models.DBTX, logger log.Logger) Repository {
 	return repository{db, logger}
 }
 
 func (r repository) GetUserByUsername(ctx context.Context, username string) (models.GetByUsernameRow, error) {
-	queries := models.New(*r.db)
+	queries := models.New(r.db)
 
 	user, err := queries.GetByUsername(ctx, username)
 	if err != nil {

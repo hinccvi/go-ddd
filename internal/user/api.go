@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
@@ -70,7 +69,7 @@ func (r resource) Query(c echo.Context) error {
 		offset = int32(*req.Offset)
 	}
 
-	arg := &models.ListUserParams{
+	arg := models.ListUserParams{
 		Limit:  limit,
 		Offset: offset,
 	}
@@ -103,15 +102,12 @@ func (r resource) Create(c echo.Context) error {
 		return err
 	}
 
-	arg := &models.CreateUserParams{
+	arg := models.CreateUserParams{
 		Username: req.Username,
 		Password: req.Password,
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), constants.RequestTimeoutDuration)
-	defer cancel()
-
-	user, err := r.service.Create(ctx, arg)
+	user, err := r.service.Create(context.TODO(), arg)
 	if err != nil {
 		return err
 	}
@@ -126,16 +122,13 @@ func (r resource) Update(c echo.Context) error {
 		return err
 	}
 
-	arg := &models.UpdateUserParams{
+	arg := models.UpdateUserParams{
 		ID:       req.Id,
 		Username: req.Username,
 		Password: req.Password,
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), constants.RequestTimeoutDuration)
-	defer cancel()
-
-	user, err := r.service.Update(ctx, arg)
+	user, err := r.service.Update(context.TODO(), arg)
 	if err != nil {
 		return err
 	}
@@ -150,10 +143,7 @@ func (r resource) Delete(c echo.Context) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), constants.RequestTimeoutDuration)
-	defer cancel()
-
-	user, err := r.service.Delete(ctx, req.Id)
+	user, err := r.service.Delete(context.TODO(), req.Id)
 	if err != nil {
 		return err
 	}

@@ -8,8 +8,7 @@ jwt:
   refresh_signing_key: KQciMyZms5nBhiEwABX9srXPVCR9PFnka3Ci3SseB4XAjBU4OTVIj1jat5oLvhCv
   refresh_expiration: 10080
 
-db:
-  url: "postgresql://alex:testing@localhost:5432/test"
+dsn: "postgresql://alex:testing@localhost:5432/test"
 
 redis:
   host: "127.0.0.1"

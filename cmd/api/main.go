@@ -58,7 +58,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.App.Port),
-		Handler: buildHandler(*flagMode, &logger, rds, &dbx, &cfg),
+		Handler: buildHandler(*flagMode, logger, rds, dbx, &cfg),
 	}
 
 	logger.Infof("Server listening on %s", server.Addr)
@@ -86,10 +86,10 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *models.DBTX, cfg *config.Config) *echo.Echo {
+func buildHandler(mode string, logger log.Logger, rds redis.Client, dbx models.DBTX, cfg *config.Config) *echo.Echo {
 	e := echo.New()
 
-	e.HTTPErrorHandler = m.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(*logger)
+	e.HTTPErrorHandler = m.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(logger)
 
 	e.Use(buildMiddleware()...)
 
@@ -109,14 +109,14 @@ func buildHandler(mode string, logger *log.Logger, rds *redis.Client, dbx *model
 
 	auth.RegisterHandlers(
 		defaultGroup,
-		auth.NewService(cfg, auth.NewRepository(dbx, *logger), *logger),
-		*logger,
+		auth.NewService(cfg, auth.NewRepository(dbx, logger), logger),
+		logger,
 	)
 
 	user.RegisterHandlers(
 		defaultGroup,
-		user.NewService(rds, user.NewRepository(dbx, *logger), *logger),
-		*logger,
+		user.NewService(rds, user.NewRepository(dbx, logger), logger),
+		logger,
 		authHandler,
 	)
 
@@ -130,8 +130,13 @@ func buildMiddleware() []echo.MiddlewareFunc {
 
 	middlewares = append(middlewares,
 
-		// Recover
+		// Echo built-in middleware
 		middleware.Recover(),
+		middleware.Secure(),
+		middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+			Timeout:      constants.RequestTimeoutDuration,
+			ErrorMessage: constants.MsgRequestTimeout,
+		}),
 
 		// Api access logs
 		accesslog.Handler(logger),
