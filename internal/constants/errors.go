@@ -16,6 +16,7 @@ var (
 	ErrInvalidCredentials  = errors.New("incorrect username or password")
 	ErrConditionNotFulfil  = errors.New("condition not fulfil")
 	ErrInvalidRefreshToken = errors.New("invalid refresh token")
+	ErrInvalidJwt          = errors.New("invalid token")
 
 	ErrorStatusCodeMaps = map[error]int{
 		// Business logic error
@@ -23,5 +24,6 @@ var (
 		ErrInvalidCredentials:  http.StatusBadRequest,
 		ErrConditionNotFulfil:  http.StatusBadRequest,
 		ErrInvalidRefreshToken: http.StatusBadRequest,
+		ErrInvalidJwt:          http.StatusBadRequest,
 	}
 )

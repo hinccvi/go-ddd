@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v9"
@@ -91,11 +90,7 @@ func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, e
 	id := uuid.MustParse(accessClaims.Subject)
 
 	if err := s.validateRefreshToken(ctx, id.String(), rt); err != nil {
-		if err == redis.Nil {
-			return refreshResponse{}, constants.ErrInvalidRefreshToken
-		} else if err != nil {
-			return refreshResponse{}, err
-		}
+		return refreshResponse{}, err
 	}
 
 	user := models.GetByUsernameRow{
@@ -162,7 +157,7 @@ func (s service) generateJWT(user models.GetByUsernameRow, jwtType string) (stri
 func (s service) parseRefreshToken(refreshToken string) (JwtCustomClaims, error) {
 	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("invalid signing method")
+			return nil, constants.ErrInvalidJwt
 		}
 
 		return []byte(s.cfg.Jwt.RefreshSigningKey), nil
@@ -179,7 +174,7 @@ func (s service) parseRefreshToken(refreshToken string) (JwtCustomClaims, error)
 func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
 	_, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("invalid signing method")
+			return nil, constants.ErrInvalidJwt
 		}
 
 		return []byte(s.cfg.Jwt.AccessSigningKey), nil
@@ -216,7 +211,16 @@ func (s service) cacheRefreshToken(ctx context.Context, id, refreshToken string)
 func (s service) validateRefreshToken(ctx context.Context, id, refreshToken string) error {
 	key := constants.GetRedisKey(constants.RefreshTokenKey) + id
 
-	_, err := s.rds.Get(ctx, key).Result()
+	val, err := s.rds.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return constants.ErrInvalidRefreshToken
+	} else if err != nil {
+		return err
+	} else {
+		if refreshToken != val {
+			return constants.ErrInvalidRefreshToken
+		}
+	}
 
 	return err
 }
