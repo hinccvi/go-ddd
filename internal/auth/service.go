@@ -117,6 +117,10 @@ func (s service) authenticate(ctx context.Context, username, password string) (m
 	}
 
 	if err := tools.BcryptCompare(password, user.Password); err != nil {
+		if err := s.cacheIncorrectPassword(ctx, user.ID.String()); err != nil {
+			return models.GetByUsernameRow{}, err
+		}
+
 		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
 	}
 
@@ -208,6 +212,23 @@ func (s service) cacheRefreshToken(ctx context.Context, id, refreshToken string)
 	return s.rds.Set(ctx, key, refreshToken, -1).Err()
 }
 
+func (s service) cacheIncorrectPassword(ctx context.Context, id string) error {
+	key := constants.GetRedisKey(constants.IncorrectPasswordKey) + id
+
+	val, err := s.rds.Get(ctx, key).Int()
+	if err == redis.Nil {
+		return s.rds.Set(ctx, key, 1, 24*time.Hour).Err()
+	} else if err != nil {
+		return err
+	} else {
+		if val >= 5 {
+			return constants.ErrMaxAttempt
+		}
+
+		return s.rds.Incr(ctx, key).Err()
+	}
+}
+
 func (s service) validateRefreshToken(ctx context.Context, id, refreshToken string) error {
 	key := constants.GetRedisKey(constants.RefreshTokenKey) + id
 
@@ -219,8 +240,8 @@ func (s service) validateRefreshToken(ctx context.Context, id, refreshToken stri
 	} else {
 		if refreshToken != val {
 			return constants.ErrInvalidRefreshToken
+		} else {
+			return nil
 		}
 	}
-
-	return err
 }
