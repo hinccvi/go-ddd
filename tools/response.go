@@ -7,7 +7,8 @@ import (
 )
 
 type (
-	message  string
+	message string
+
 	response struct {
 		Code    int         `json:"code"`
 		Message string      `json:"message"`

@@ -2,8 +2,11 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/go-redis/redis/v9"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
@@ -18,6 +21,7 @@ type Service interface {
 	// authenticate authenticates a user using username and password.
 	// It returns a JWT token if authentication succeeds. Otherwise, an error is returned.
 	Login(ctx context.Context, username, password string) (loginResponse, error)
+	Refresh(ctx context.Context, at, rt string) (refreshResponse, error)
 }
 
 // Identity represents an authenticated user identity.
@@ -39,13 +43,14 @@ type JwtCustomClaims struct {
 
 type service struct {
 	cfg    *config.Config
+	rds    redis.Client
 	logger log.Logger
 	repo   Repository
 }
 
 // NewService creates a new authentication service.
-func NewService(cfg *config.Config, repo Repository, logger log.Logger) Service {
-	return service{cfg, logger, repo}
+func NewService(cfg *config.Config, rds redis.Client, repo Repository, logger log.Logger) Service {
+	return service{cfg, rds, logger, repo}
 }
 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
@@ -64,8 +69,46 @@ func (s service) Login(ctx context.Context, username, password string) (loginRes
 			return loginResponse{}, err
 		}
 
+		if err := s.cacheRefreshToken(ctx, user.ID.String(), refreshToken); err != nil {
+			return loginResponse{}, err
+		}
+
 		return loginResponse{accessToken, refreshToken}, nil
 	}
+}
+
+func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, error) {
+	_, err := s.parseRefreshToken(rt)
+	if err != nil {
+		return refreshResponse{}, err
+	}
+
+	accessClaims, err := s.parseAccessToken(at)
+	if err != nil {
+		return refreshResponse{}, err
+	}
+
+	id := uuid.MustParse(accessClaims.Subject)
+
+	if err := s.validateRefreshToken(ctx, id.String(), rt); err != nil {
+		if err == redis.Nil {
+			return refreshResponse{}, constants.ErrInvalidRefreshToken
+		} else if err != nil {
+			return refreshResponse{}, err
+		}
+	}
+
+	user := models.GetByUsernameRow{
+		ID:       &id,
+		Username: accessClaims.Data.UserName,
+	}
+
+	accessToken, err := s.generateJWT(user, "")
+	if err != nil {
+		return refreshResponse{}, err
+	}
+
+	return refreshResponse{accessToken}, nil
 }
 
 // authenticate authenticates a user using username and password.
@@ -114,4 +157,66 @@ func (s service) generateJWT(user models.GetByUsernameRow, jwtType string) (stri
 	)
 
 	return token.SignedString(signingKey)
+}
+
+func (s service) parseRefreshToken(refreshToken string) (JwtCustomClaims, error) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("invalid signing method")
+		}
+
+		return []byte(s.cfg.Jwt.RefreshSigningKey), nil
+	})
+
+	if claims, ok := token.Claims.(JwtCustomClaims); ok && token.Valid {
+		return claims, nil
+	} else {
+		return JwtCustomClaims{}, err
+	}
+}
+
+// parseAccessToken extract value from validated token that failed on expired err
+func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
+	_, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("invalid signing method")
+		}
+
+		return []byte(s.cfg.Jwt.AccessSigningKey), nil
+	})
+
+	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
+		return JwtCustomClaims{}, err
+	}
+
+	token, _, err := new(jwt.Parser).ParseUnverified(accessToken, &JwtCustomClaims{})
+	if err != nil {
+		return JwtCustomClaims{}, nil
+	}
+
+	claims, ok := token.Claims.(*JwtCustomClaims)
+	if !ok {
+		return JwtCustomClaims{}, err
+	}
+
+	// only allow access token to be refresh 1 min before expire time
+	if time.Until(claims.ExpiresAt.Time) > (60 * time.Second) {
+		return JwtCustomClaims{}, constants.ErrConditionNotFulfil
+	}
+
+	return *claims, nil
+}
+
+func (s service) cacheRefreshToken(ctx context.Context, id, refreshToken string) error {
+	key := constants.GetRedisKey(constants.RefreshTokenKey) + id
+
+	return s.rds.Set(ctx, key, refreshToken, -1).Err()
+}
+
+func (s service) validateRefreshToken(ctx context.Context, id, refreshToken string) error {
+	key := constants.GetRedisKey(constants.RefreshTokenKey) + id
+
+	_, err := s.rds.Get(ctx, key).Result()
+
+	return err
 }

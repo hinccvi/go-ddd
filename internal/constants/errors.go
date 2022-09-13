@@ -12,12 +12,16 @@ const (
 )
 
 var (
-	ErrCustomErr          = errors.New("custom error")
-	ErrInvalidCredentials = errors.New("incorrect username or password")
+	ErrCustomErr           = errors.New("custom error")
+	ErrInvalidCredentials  = errors.New("incorrect username or password")
+	ErrConditionNotFulfil  = errors.New("condition not fulfil")
+	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 
 	ErrorStatusCodeMaps = map[error]int{
 		// Business logic error
-		ErrCustomErr:          http.StatusBadRequest,
-		ErrInvalidCredentials: http.StatusBadRequest,
+		ErrCustomErr:           http.StatusBadRequest,
+		ErrInvalidCredentials:  http.StatusBadRequest,
+		ErrConditionNotFulfil:  http.StatusBadRequest,
+		ErrInvalidRefreshToken: http.StatusBadRequest,
 	}
 )

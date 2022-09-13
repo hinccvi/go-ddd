@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v9"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
@@ -109,7 +109,7 @@ func buildHandler(mode string, logger log.Logger, rds redis.Client, dbx models.D
 
 	auth.RegisterHandlers(
 		defaultGroup,
-		auth.NewService(cfg, auth.NewRepository(dbx, logger), logger),
+		auth.NewService(cfg, rds, auth.NewRepository(dbx, logger), logger),
 		logger,
 	)
 
@@ -132,21 +132,22 @@ func buildMiddleware() []echo.MiddlewareFunc {
 
 		// Echo built-in middleware
 		middleware.Recover(),
+
 		middleware.Secure(),
+
 		middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 			Timeout:      constants.RequestTimeoutDuration,
 			ErrorMessage: constants.MsgRequestTimeout,
 		}),
 
-		// Api access logs
-		accesslog.Handler(logger),
-
-		// X-Request-ID
 		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 			Generator: func() string {
 				return tools.GenerateUUIDv4().String()
 			},
 		}),
+
+		// Api access logs
+		accesslog.Handler(logger),
 	)
 
 	return middlewares

@@ -22,10 +22,8 @@ func RegisterHandlers(g *echo.Group, service Service, logger log.Logger, authHan
 			user.GET("/count", r.Count)
 			user.POST("", r.Create)
 
-			user.Use(authHandler)
-
-			user.PATCH("", r.Update)
-			user.DELETE("", r.Delete)
+			user.PATCH("", r.Update, authHandler)
+			user.DELETE("", r.Delete, authHandler)
 		}
 	}
 }
