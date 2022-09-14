@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,10 +39,10 @@ type CreateUserParams struct {
 }
 
 type CreateUserRow struct {
-	ID        *uuid.UUID `json:"id"`
-	Username  string     `json:"username"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -60,7 +61,7 @@ const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM "user" WHERE id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id *uuid.UUID) error {
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
@@ -72,9 +73,9 @@ LIMIT 1
 `
 
 type GetByUsernameRow struct {
-	ID       *uuid.UUID `json:"id"`
-	Username string     `json:"username"`
-	Password string     `json:"password"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Password string    `json:"password"`
 }
 
 func (q *Queries) GetByUsername(ctx context.Context, username string) (GetByUsernameRow, error) {
@@ -90,7 +91,7 @@ WHERE id = $1 AND deleted_at IS NULL
 LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id *uuid.UUID) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
 	err := row.Scan(
@@ -151,14 +152,14 @@ RETURNING id, username, created_at, updated_at, deleted_at
 `
 
 type SoftDeleteUserRow struct {
-	ID        *uuid.UUID `json:"id"`
-	Username  string     `json:"username"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at"`
+	ID        uuid.UUID    `json:"id"`
+	Username  string       `json:"username"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
+	DeletedAt sql.NullTime `json:"deleted_at"`
 }
 
-func (q *Queries) SoftDeleteUser(ctx context.Context, id *uuid.UUID) (SoftDeleteUserRow, error) {
+func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) (SoftDeleteUserRow, error) {
 	row := q.db.QueryRow(ctx, softDeleteUser, id)
 	var i SoftDeleteUserRow
 	err := row.Scan(
@@ -186,16 +187,16 @@ RETURNING id, username, created_at, updated_at
 `
 
 type UpdateUserParams struct {
-	ID       *uuid.UUID `json:"id"`
-	Username string     `json:"username"`
-	Password string     `json:"password"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Password string    `json:"password"`
 }
 
 type UpdateUserRow struct {
-	ID        *uuid.UUID `json:"id"`
-	Username  string     `json:"username"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {

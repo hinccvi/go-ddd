@@ -94,7 +94,7 @@ func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, e
 	}
 
 	user := models.GetByUsernameRow{
-		ID:       &id,
+		ID:       id,
 		Username: accessClaims.Data.UserName,
 	}
 

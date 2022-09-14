@@ -16,3 +16,6 @@
 
 # Local config
 dev.yml
+
+# Ide config
+.vscode

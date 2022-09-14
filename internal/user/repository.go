@@ -31,7 +31,7 @@ func NewRepository(db models.DBTX, logger log.Logger) Repository {
 func (r repository) Get(ctx context.Context, id *uuid.UUID) (models.User, error) {
 	queries := models.New(r.db)
 
-	user, err := queries.GetUser(ctx, id)
+	user, err := queries.GetUser(ctx, *id)
 	if err != nil {
 		return models.User{}, err
 	}
@@ -86,7 +86,7 @@ func (r repository) Update(ctx context.Context, arg models.UpdateUserParams) (mo
 func (r repository) Delete(ctx context.Context, id *uuid.UUID) (models.SoftDeleteUserRow, error) {
 	queries := models.New(r.db)
 
-	user, err := queries.SoftDeleteUser(ctx, id)
+	user, err := queries.SoftDeleteUser(ctx, *id)
 	if err != nil {
 		return models.SoftDeleteUserRow{}, err
 	}
