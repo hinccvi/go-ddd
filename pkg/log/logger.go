@@ -23,22 +23,22 @@ const (
 	prodPath  = "/www/wwwlog/"
 
 	//	Configuration for error log
-	apiFileName  = "error.log"
-	apiMaxSize   = 2
-	apiMaxBackup = 3
-	apiMaxAge    = 3
+	errorLogFileName  = "error.log"
+	errorLogMaxSize   = 500
+	errorLogMaxBackup = 7
+	errorLogMaxAge    = 7
 
 	//	Configuration for sql log
-	sqlFileName  = "sql.log"
-	sqlMaxSize   = 2
-	sqlMaxBackup = 3
-	sqlMaxAge    = 3
+	sqlLogFileName  = "sql.log"
+	sqlLogMaxSize   = 500
+	sqlLogMaxBackup = 2
+	sqlLogMaxAge    = 3
 
 	//	Configuration for api log
-	accessFileName  = "api.log"
-	accessMaxSize   = 2
-	accessMaxBackup = 3
-	accessMaxAge    = 3
+	accessLogFileName  = "api.log"
+	accessLogMaxSize   = 500
+	accessLogMaxBackup = 3
+	accessLogMaxAge    = 7
 )
 
 // Logger is a logger that supports log levels, context and structured logging.
@@ -98,13 +98,13 @@ func New(env string, log LogType) *zap.Logger {
 		switch log {
 		case ApiLog:
 			level = zap.InfoLevel
-			writeSyncer = newWriteSyncer(path+accessFileName, accessMaxSize, accessMaxBackup, accessMaxAge)
+			writeSyncer = newWriteSyncer(path+accessLogFileName, accessLogMaxSize, accessLogMaxBackup, accessLogMaxAge)
 		case SqlLog:
 			level = zap.InfoLevel
-			writeSyncer = newWriteSyncer(path+sqlFileName, sqlMaxSize, sqlMaxBackup, sqlMaxAge)
+			writeSyncer = newWriteSyncer(path+sqlLogFileName, sqlLogMaxSize, sqlLogMaxBackup, sqlLogMaxAge)
 		case ErrorLog:
 			level = zap.ErrorLevel
-			writeSyncer = newWriteSyncer(path+apiFileName, apiMaxSize, apiMaxBackup, apiMaxAge)
+			writeSyncer = newWriteSyncer(path+errorLogFileName, errorLogMaxSize, errorLogMaxBackup, errorLogMaxAge)
 		}
 
 		*c = zapcore.NewTee(zapcore.NewCore(encoder(env), writeSyncer, level))

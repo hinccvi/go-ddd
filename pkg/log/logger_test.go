@@ -28,7 +28,7 @@ func TestEncoder(t *testing.T) {
 }
 
 func TestWriteSyncer(t *testing.T) {
-	ws := newWriteSyncer(apiFileName, apiMaxSize, apiMaxBackup, apiMaxAge)
+	ws := newWriteSyncer(accessLogFileName, accessLogMaxSize, accessLogMaxBackup, accessLogMaxAge)
 	assert.NotNil(t, ws)
 }
 

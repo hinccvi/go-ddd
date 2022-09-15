@@ -2,11 +2,14 @@ package user
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
 )
 
@@ -42,6 +45,10 @@ func (r resource) Get(c echo.Context) error {
 
 	user, err := r.service.Get(c.Request().Context(), req.Id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return constants.ErrResourceNotFound
+		}
+
 		return err
 	}
 
@@ -56,7 +63,7 @@ func (r resource) Query(c echo.Context) error {
 	}
 
 	var (
-		limit  int32
+		limit  int32 = 10
 		offset int32
 	)
 	if req.Limit > 0 {

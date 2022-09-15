@@ -17,6 +17,7 @@ var (
 	ErrConditionNotFulfil  = errors.New("condition not fulfil")
 	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 	ErrInvalidJwt          = errors.New("invalid token")
+	ErrResourceNotFound    = errors.New("resource not found")
 
 	ErrorStatusCodeMaps = map[error]int{
 		// Business logic error
@@ -26,5 +27,6 @@ var (
 		ErrConditionNotFulfil:  http.StatusBadRequest,
 		ErrInvalidRefreshToken: http.StatusBadRequest,
 		ErrInvalidJwt:          http.StatusBadRequest,
+		ErrResourceNotFound:    http.StatusBadRequest,
 	}
 )
