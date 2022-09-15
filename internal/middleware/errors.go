@@ -71,13 +71,14 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 
 		if he.Internal != nil {
 			message = he.Internal.Error()
-			l.Error(he.Internal.Error())
 		} else {
-			if message, ok = he.Message.(string); ok {
-				l.Error(he.Message)
-			} else {
+			if message, ok = he.Message.(string); !ok {
 				message = constants.MsgBadRequest
 			}
+		}
+
+		if code == http.StatusInternalServerError {
+			l.Error(message)
 		}
 
 		// Send response

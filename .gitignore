@@ -19,3 +19,6 @@ dev.yml
 
 # Ide config
 .vscode
+
+# Application logs
+*.log

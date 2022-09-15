@@ -18,7 +18,6 @@ import (
 	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/accesslog"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	rds "github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/redis"
@@ -29,13 +28,13 @@ import (
 
 var Version = "1.0.0"
 
-var flagMode = flag.String("mode", "local", "environment")
+var flagMode = flag.String("env", "local", "environment")
 
 func main() {
 	flag.Parse()
 
 	// create root logger tagged with server version
-	logger := log.New(*flagMode, log.ApiLog).With(context.TODO(), "version", Version)
+	logger := log.NewWithZap(log.New(*flagMode, log.ErrorLog)).With(context.TODO(), "version", Version)
 
 	// load application configurations
 	cfg, err := config.Load(*flagMode)
@@ -44,7 +43,7 @@ func main() {
 	}
 
 	// connect to database
-	dbx, err := db.Connect(*flagMode, &cfg)
+	dbx, err := db.Connect(&cfg, log.New(*flagMode, log.SqlLog))
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -125,7 +124,7 @@ func buildHandler(mode string, logger log.Logger, rds redis.Client, dbx models.D
 // buildMiddleware sets up the middlewre logic and builds a handler.
 func buildMiddleware() []echo.MiddlewareFunc {
 	var middlewares []echo.MiddlewareFunc
-	logger := log.New(*flagMode, log.AccessLog).With(context.TODO(), "version", Version)
+	logger := log.NewWithZap(log.New(*flagMode, log.ApiLog)).With(context.TODO(), "version", Version)
 
 	middlewares = append(middlewares,
 
@@ -145,8 +144,8 @@ func buildMiddleware() []echo.MiddlewareFunc {
 			},
 		}),
 
-		// Api access logs
-		accesslog.Handler(logger),
+		// Api access log
+		m.AccessLogHandler(logger),
 	)
 
 	return middlewares

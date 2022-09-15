@@ -1,4 +1,4 @@
-package accesslog
+package middleware
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func Handler(logger log.Logger) echo.MiddlewareFunc {
+func AccessLogHandler(logger log.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			start := time.Now()
@@ -23,6 +23,11 @@ func Handler(logger log.Logger) echo.MiddlewareFunc {
 			req := c.Request()
 			res := c.Response()
 
+			id := req.Header.Get(echo.HeaderXRequestID)
+			if id == "" {
+				id = res.Header().Get(echo.HeaderXRequestID)
+			}
+
 			fields := []zapcore.Field{
 				zap.String("remote_ip", c.RealIP()),
 				zap.String("latency", time.Since(start).String()),
@@ -31,13 +36,9 @@ func Handler(logger log.Logger) echo.MiddlewareFunc {
 				zap.Int("status", res.Status),
 				zap.Int64("size", res.Size),
 				zap.String("user_agent", req.UserAgent()),
+				zap.String("request_id", id),
+				zap.Error(err),
 			}
-
-			id := req.Header.Get(echo.HeaderXRequestID)
-			if id == "" {
-				id = res.Header().Get(echo.HeaderXRequestID)
-			}
-			fields = append(fields, zap.String("request_id", id))
 
 			n := res.Status
 			switch {

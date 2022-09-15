@@ -14,19 +14,28 @@ import (
 type LogType string
 
 const (
-	AccessLog LogType = "access"
-	ApiLog    LogType = "api"
+	ErrorLog LogType = "error"
+	ApiLog   LogType = "api"
+	SqlLog   LogType = "sql"
 
 	localPath = "./"
-	devPath   = "/www/wwwlog/"
+	devPath   = "./"
 	prodPath  = "/www/wwwlog/"
 
-	apiFileName  = "api.log"
+	//	Configuration for error log
+	apiFileName  = "error.log"
 	apiMaxSize   = 2
 	apiMaxBackup = 3
 	apiMaxAge    = 3
 
-	accessFileName  = "access.log"
+	//	Configuration for sql log
+	sqlFileName  = "sql.log"
+	sqlMaxSize   = 2
+	sqlMaxBackup = 3
+	sqlMaxAge    = 3
+
+	//	Configuration for api log
+	accessFileName  = "api.log"
 	accessMaxSize   = 2
 	accessMaxBackup = 3
 	accessMaxAge    = 3
@@ -65,7 +74,7 @@ type logger struct {
 }
 
 // New creates a new logger
-func New(env string, log LogType) Logger {
+func New(env string, log LogType) *zap.Logger {
 	c := new(zapcore.Core)
 
 	if env == "local" {
@@ -86,10 +95,14 @@ func New(env string, log LogType) Logger {
 			path = prodPath
 		}
 
-		if log == AccessLog {
+		switch log {
+		case ApiLog:
 			level = zap.InfoLevel
 			writeSyncer = newWriteSyncer(path+accessFileName, accessMaxSize, accessMaxBackup, accessMaxAge)
-		} else {
+		case SqlLog:
+			level = zap.InfoLevel
+			writeSyncer = newWriteSyncer(path+sqlFileName, sqlMaxSize, sqlMaxBackup, sqlMaxAge)
+		case ErrorLog:
 			level = zap.ErrorLevel
 			writeSyncer = newWriteSyncer(path+apiFileName, apiMaxSize, apiMaxBackup, apiMaxAge)
 		}
@@ -99,7 +112,7 @@ func New(env string, log LogType) Logger {
 
 	l := zap.New(*c, zap.AddCaller(), zap.AddCallerSkip(0))
 
-	return NewWithZap(l)
+	return l
 }
 
 // Customize log encoder

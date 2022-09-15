@@ -109,8 +109,6 @@ func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, e
 // authenticate authenticates a user using username and password.
 // If name and password are correct, an identity is returned. Otherwise, nil is returned.
 func (s service) authenticate(ctx context.Context, username, password string) (models.GetByUsernameRow, error) {
-	logger := s.logger.With(ctx, "username", username)
-
 	user, err := s.repo.GetUserByUsername(ctx, username)
 	if err != nil {
 		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
@@ -123,8 +121,6 @@ func (s service) authenticate(ctx context.Context, username, password string) (m
 
 		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
 	}
-
-	logger.Info("authentication successful")
 
 	return user, nil
 }
