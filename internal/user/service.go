@@ -12,12 +12,12 @@ import (
 
 // Service encapsulates usecase logic for user.
 type Service interface {
-	Get(ctx context.Context, id *uuid.UUID) (User, error)
+	Get(ctx context.Context, id uuid.UUID) (User, error)
 	Query(ctx context.Context, arg models.ListUserParams) ([]User, error)
 	Count(ctx context.Context) (int64, error)
 	Create(ctx context.Context, arg models.CreateUserParams) (User, error)
 	Update(ctx context.Context, arg models.UpdateUserParams) (User, error)
-	Delete(ctx context.Context, id *uuid.UUID) (User, error)
+	Delete(ctx context.Context, id uuid.UUID) (User, error)
 }
 
 // User represents the data about a user.
@@ -36,7 +36,7 @@ func NewService(rds redis.Client, repo Repository, logger log.Logger) Service {
 	return service{rds, repo, logger}
 }
 
-func (s service) Get(ctx context.Context, id *uuid.UUID) (User, error) {
+func (s service) Get(ctx context.Context, id uuid.UUID) (User, error) {
 	item, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return User{}, err
@@ -107,7 +107,7 @@ func (s service) Update(ctx context.Context, arg models.UpdateUserParams) (u Use
 	return User{user}, nil
 }
 
-func (s service) Delete(ctx context.Context, id *uuid.UUID) (u User, err error) {
+func (s service) Delete(ctx context.Context, id uuid.UUID) (u User, err error) {
 	ur, err := s.repo.Delete(ctx, id)
 	if err != nil {
 		return User{}, err

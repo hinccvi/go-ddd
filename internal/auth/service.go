@@ -207,13 +207,13 @@ func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
 }
 
 func (s service) cacheRefreshToken(ctx context.Context, id, refreshToken string) error {
-	key := constants.GetRedisKey(constants.RefreshTokenKey) + id
+	key := string(constants.GetRedisKey(constants.RefreshTokenKey)) + id
 
 	return s.rds.Set(ctx, key, refreshToken, -1).Err()
 }
 
 func (s service) cacheIncorrectPassword(ctx context.Context, id string) error {
-	key := constants.GetRedisKey(constants.IncorrectPasswordKey) + id
+	key := string(constants.GetRedisKey(constants.IncorrectPasswordKey)) + id
 
 	val, err := s.rds.Get(ctx, key).Int()
 	if err == redis.Nil {
@@ -230,7 +230,7 @@ func (s service) cacheIncorrectPassword(ctx context.Context, id string) error {
 }
 
 func (s service) validateRefreshToken(ctx context.Context, id, refreshToken string) error {
-	key := constants.GetRedisKey(constants.RefreshTokenKey) + id
+	key := string(constants.GetRedisKey(constants.RefreshTokenKey)) + id
 
 	val, err := s.rds.Get(ctx, key).Result()
 	if err == redis.Nil {

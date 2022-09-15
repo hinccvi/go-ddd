@@ -4,7 +4,7 @@ import "github.com/google/uuid"
 
 type (
 	getOrDeleteUserRequest struct {
-		Id *uuid.UUID `query:"id" validate:"required"`
+		Id uuid.UUID `query:"id" validate:"required"`
 	}
 
 	queryUserRequest struct {

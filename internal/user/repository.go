@@ -10,12 +10,12 @@ import (
 
 // Repository encapsulates the logic to access users from the data source.
 type Repository interface {
-	Get(ctx context.Context, id *uuid.UUID) (models.User, error)
+	Get(ctx context.Context, id uuid.UUID) (models.User, error)
 	Count(ctx context.Context) (int64, error)
 	Query(ctx context.Context, arg models.ListUserParams) ([]models.User, error)
 	Create(ctx context.Context, arg models.CreateUserParams) (models.CreateUserRow, error)
 	Update(ctx context.Context, arg models.UpdateUserParams) (models.UpdateUserRow, error)
-	Delete(ctx context.Context, id *uuid.UUID) (models.SoftDeleteUserRow, error)
+	Delete(ctx context.Context, id uuid.UUID) (models.SoftDeleteUserRow, error)
 }
 
 // repository persists albums in database
@@ -28,10 +28,10 @@ func NewRepository(db models.DBTX, logger log.Logger) Repository {
 	return repository{db, logger}
 }
 
-func (r repository) Get(ctx context.Context, id *uuid.UUID) (models.User, error) {
+func (r repository) Get(ctx context.Context, id uuid.UUID) (models.User, error) {
 	queries := models.New(r.db)
 
-	user, err := queries.GetUser(ctx, *id)
+	user, err := queries.GetUser(ctx, id)
 	if err != nil {
 		return models.User{}, err
 	}
@@ -83,10 +83,10 @@ func (r repository) Update(ctx context.Context, arg models.UpdateUserParams) (mo
 	return user, nil
 }
 
-func (r repository) Delete(ctx context.Context, id *uuid.UUID) (models.SoftDeleteUserRow, error) {
+func (r repository) Delete(ctx context.Context, id uuid.UUID) (models.SoftDeleteUserRow, error) {
 	queries := models.New(r.db)
 
-	user, err := queries.SoftDeleteUser(ctx, *id)
+	user, err := queries.SoftDeleteUser(ctx, id)
 	if err != nil {
 		return models.SoftDeleteUserRow{}, err
 	}

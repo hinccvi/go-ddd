@@ -12,6 +12,6 @@ const (
 	SmsAttemptKey        RedisKey = "sms_attempt:"
 )
 
-func GetRedisKey(key RedisKey) string {
-	return string(prefix) + string(key)
+func GetRedisKey(key RedisKey) RedisKey {
+	return prefix + key
 }
