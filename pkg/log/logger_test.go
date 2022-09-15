@@ -8,10 +8,10 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	assert.NotNil(t, New("local", zap.InfoLevel))
-	assert.NotNil(t, New("dev", zap.ErrorLevel))
-	assert.NotNil(t, New("qa", zap.ErrorLevel))
-	assert.NotNil(t, New("prod", zap.ErrorLevel))
+	assert.NotNil(t, New("local", ApiLog))
+	assert.NotNil(t, New("dev", ApiLog))
+	assert.NotNil(t, New("qa", ApiLog))
+	assert.NotNil(t, New("prod", ApiLog))
 }
 
 func TestNewWithZap(t *testing.T) {
@@ -21,19 +21,19 @@ func TestNewWithZap(t *testing.T) {
 }
 
 func TestEncoder(t *testing.T) {
-	assert.NotNil(t, Encoder("local"))
-	assert.NotNil(t, Encoder("dev"))
-	assert.NotNil(t, Encoder("qa"))
-	assert.NotNil(t, Encoder("prod"))
+	assert.NotNil(t, encoder("local"))
+	assert.NotNil(t, encoder("dev"))
+	assert.NotNil(t, encoder("qa"))
+	assert.NotNil(t, encoder("prod"))
 }
 
 func TestWriteSyncer(t *testing.T) {
-	ws := WriteSyncer()
+	ws := newWriteSyncer(apiFileName, apiMaxSize, apiMaxBackup, apiMaxAge)
 	assert.NotNil(t, ws)
 }
 
 func TestNewForTest(t *testing.T) {
-	logger, entries := NewForTest()
+	logger, entries := newForTest()
 	assert.Equal(t, 0, entries.Len())
 	logger.Info("msg 1")
 	assert.Equal(t, 1, entries.Len())

@@ -25,7 +25,6 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"go.uber.org/zap"
 )
 
 var Version = "1.0.0"
@@ -36,7 +35,7 @@ func main() {
 	flag.Parse()
 
 	// create root logger tagged with server version
-	logger := log.New(*flagMode, zap.ErrorLevel).With(context.TODO(), "version", Version)
+	logger := log.New(*flagMode, log.ApiLog).With(context.TODO(), "version", Version)
 
 	// load application configurations
 	cfg, err := config.Load(*flagMode)
@@ -126,7 +125,7 @@ func buildHandler(mode string, logger log.Logger, rds redis.Client, dbx models.D
 // buildMiddleware sets up the middlewre logic and builds a handler.
 func buildMiddleware() []echo.MiddlewareFunc {
 	var middlewares []echo.MiddlewareFunc
-	logger := log.New(*flagMode, zap.InfoLevel).With(context.TODO(), "version", Version)
+	logger := log.New(*flagMode, log.AccessLog).With(context.TODO(), "version", Version)
 
 	middlewares = append(middlewares,
 

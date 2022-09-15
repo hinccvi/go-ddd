@@ -11,11 +11,25 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+type LogType string
+
 const (
-	fileName   = "app.log"
-	maxSize    = 500
-	maxBackups = 7
-	maxAge     = 30
+	AccessLog LogType = "access"
+	ApiLog    LogType = "api"
+
+	localPath = "./"
+	devPath   = "/www/wwwlog/"
+	prodPath  = "/www/wwwlog/"
+
+	apiFileName  = "api.log"
+	apiMaxSize   = 2
+	apiMaxBackup = 3
+	apiMaxAge    = 3
+
+	accessFileName  = "access.log"
+	accessMaxSize   = 2
+	accessMaxBackup = 3
+	accessMaxAge    = 3
 )
 
 // Logger is a logger that supports log levels, context and structured logging.
@@ -51,13 +65,36 @@ type logger struct {
 }
 
 // New creates a new logger
-func New(mode string, level zapcore.Level) Logger {
+func New(env string, log LogType) Logger {
 	c := new(zapcore.Core)
 
-	if mode == "local" {
-		*c = zapcore.NewTee(zapcore.NewCore(Encoder(mode), zapcore.Lock(os.Stdout), zap.InfoLevel))
+	if env == "local" {
+		*c = zapcore.NewTee(zapcore.NewCore(encoder(env), zapcore.Lock(os.Stdout), zap.InfoLevel))
 	} else {
-		*c = zapcore.NewTee(zapcore.NewCore(Encoder(mode), WriteSyncer(), level))
+		var level zapcore.Level
+		var writeSyncer zapcore.WriteSyncer
+		var path string
+
+		switch env {
+		case "local":
+			path = localPath
+		case "dev":
+			path = devPath
+		case "qa":
+			path = devPath
+		case "prod":
+			path = prodPath
+		}
+
+		if log == AccessLog {
+			level = zap.InfoLevel
+			writeSyncer = newWriteSyncer(path+accessFileName, accessMaxSize, accessMaxBackup, accessMaxAge)
+		} else {
+			level = zap.ErrorLevel
+			writeSyncer = newWriteSyncer(path+apiFileName, apiMaxSize, apiMaxBackup, apiMaxAge)
+		}
+
+		*c = zapcore.NewTee(zapcore.NewCore(encoder(env), writeSyncer, level))
 	}
 
 	l := zap.New(*c, zap.AddCaller(), zap.AddCallerSkip(0))
@@ -66,7 +103,7 @@ func New(mode string, level zapcore.Level) Logger {
 }
 
 // Customize log encoder
-func Encoder(mode string) zapcore.Encoder {
+func encoder(mode string) zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	encoderConfig.TimeKey = "time"
@@ -80,11 +117,11 @@ func Encoder(mode string) zapcore.Encoder {
 	return zapcore.NewJSONEncoder(encoderConfig)
 }
 
-func WriteSyncer() zapcore.WriteSyncer {
+func newWriteSyncer(fileName string, maxSize, maxBackup, maxAge int) zapcore.WriteSyncer {
 	lumberJackLogger := &lumberjack.Logger{
 		Filename:   fileName,
 		MaxSize:    maxSize,
-		MaxBackups: maxBackups,
+		MaxBackups: maxBackup,
 		MaxAge:     maxAge,
 	}
 	return zapcore.AddSync(lumberJackLogger)
@@ -96,7 +133,7 @@ func NewWithZap(l *zap.Logger) Logger {
 }
 
 // NewForTest returns a new logger and the corresponding observed logs which can be used in unit tests to verify log entries.
-func NewForTest() (Logger, *observer.ObservedLogs) {
+func newForTest() (Logger, *observer.ObservedLogs) {
 	core, recorded := observer.New(zapcore.InfoLevel)
 	return NewWithZap(zap.New(core)), recorded
 }
