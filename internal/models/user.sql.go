@@ -67,9 +67,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const getByUsername = `-- name: GetByUsername :one
-SELECT id, username, password FROM "user"
-WHERE username = $1 AND deleted_at IS NULL
-LIMIT 1
+SELECT id, username, password FROM "user" WHERE username = $1 AND deleted_at IS NULL LIMIT 1
 `
 
 type GetByUsernameRow struct {
@@ -86,9 +84,7 @@ func (q *Queries) GetByUsername(ctx context.Context, username string) (GetByUser
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, password, created_at, updated_at, deleted_at FROM "user"
-WHERE id = $1 AND deleted_at IS NULL
-LIMIT 1
+SELECT id, username, password, created_at, updated_at, deleted_at FROM "user" WHERE id = $1 AND deleted_at IS NULL LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
@@ -106,10 +102,7 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const listUser = `-- name: ListUser :many
-SELECT id, username, password, created_at, updated_at, deleted_at FROM "user"
-ORDER BY username
-LIMIT($1)
-OFFSET($2)
+SELECT id, username, password, created_at, updated_at, deleted_at FROM "user" ORDER BY username LIMIT($1) OFFSET($2)
 `
 
 type ListUserParams struct {

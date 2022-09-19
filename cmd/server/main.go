@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v9"
@@ -73,7 +74,7 @@ func main() {
 
 	logger.Info("Server shutting down")
 
-	ctx, cancel := context.WithTimeout(context.Background(), constants.ShutdownTimeoutDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
@@ -134,7 +135,7 @@ func buildMiddleware() []echo.MiddlewareFunc {
 		middleware.Secure(),
 
 		middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-			Timeout:      constants.RequestTimeoutDuration,
+			Timeout:      5 * time.Second,
 			ErrorMessage: constants.MsgRequestTimeout,
 		}),
 
@@ -143,6 +144,9 @@ func buildMiddleware() []echo.MiddlewareFunc {
 				return tools.GenerateUUIDv4().String()
 			},
 		}),
+
+		// Session
+		// session.Middleware(sessions.NewCookieStore([]byte("secret"))),
 
 		// Api access log
 		m.AccessLogHandler(logger),

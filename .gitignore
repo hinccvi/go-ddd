@@ -22,3 +22,6 @@ dev.yml
 
 # Application logs
 *.log
+
+# Docker artifacts
+testdata

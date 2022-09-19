@@ -22,6 +22,6 @@ func TestConnect(t *testing.T) {
 	zap := log.New(*flagMode, log.ApiLog)
 
 	db, err := Connect(&cfg, zap)
-	assert.NotNil(t, db)
 	assert.Nil(t, err)
+	assert.NotNil(t, db)
 }

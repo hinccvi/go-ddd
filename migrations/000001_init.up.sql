@@ -1,3 +1,7 @@
+BEGIN;
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE IF NOT EXISTS "user" (
   id    uuid    DEFAULT uuid_generate_v4(),
   username  VARCHAR(25) NOT NULL,
@@ -7,3 +11,5 @@ CREATE TABLE IF NOT EXISTS "user" (
   deleted_at    timestamp WITHOUT TIME ZONE NULL,
   PRIMARY KEY (id)
 );
+
+COMMIT;

@@ -1,9 +1,6 @@
 package config
 
 import (
-	"fmt"
-
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
 
@@ -64,15 +61,5 @@ func Load(mode string) (Config, error) {
 		return *conf, err
 	}
 
-	viper.WatchConfig()
-
-	var errs error
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		fmt.Println("-- Config file updated --")
-		if err := viper.Unmarshal(conf); err != nil {
-			errs = err
-		}
-	})
-
-	return *conf, errs
+	return *conf, nil
 }

@@ -1,24 +1,14 @@
 -- name: GetUser :one
-SELECT * FROM "user"
-WHERE id = $1 AND deleted_at IS NULL
-LIMIT 1;
+SELECT * FROM "user" WHERE id = $1 AND deleted_at IS NULL LIMIT 1;
 
 -- name: CountUser :one
 SELECT COUNT(*) FROM "user";
 
 -- name: ListUser :many
-SELECT * FROM "user"
-ORDER BY username
-LIMIT($1)
-OFFSET($2);
+SELECT * FROM "user" ORDER BY username LIMIT($1) OFFSET($2);
 
 -- name: CreateUser :one
-INSERT INTO "user" (
-  username, password
-) VALUES (
-  $1, $2
-)
-RETURNING id, username, created_at, updated_at;
+INSERT INTO "user" (username, password) VALUES ($1, $2) RETURNING id, username, created_at, updated_at;
 
 -- name: UpdateUser :one
 UPDATE "user"
@@ -37,12 +27,7 @@ RETURNING id, username, created_at, updated_at;
 DELETE FROM "user" WHERE id = $1;
 
 -- name: SoftDeleteUser :one
-UPDATE "user"
-SET deleted_at = (current_timestamp AT TIME ZONE 'UTC')
-WHERE id = $1
-RETURNING id, username, created_at, updated_at, deleted_at;
+UPDATE "user" SET deleted_at = (current_timestamp AT TIME ZONE 'UTC') WHERE id = $1 RETURNING id, username, created_at, updated_at, deleted_at;
 
 -- name: GetByUsername :one
-SELECT id, username, password FROM "user"
-WHERE username = $1 AND deleted_at IS NULL
-LIMIT 1;
+SELECT id, username, password FROM "user" WHERE username = $1 AND deleted_at IS NULL LIMIT 1;
