@@ -72,6 +72,16 @@ db-start: ## start the database server
 db-stop: ## stop the database server
 	docker stop postgres
 
+.PHONY: redis-start
+redis-start: ## start the redis server
+	docker run --rm --name redis \
+		-v $(shell pwd)/testdata/redis/local-redis-stack.conf:/redis-stack.conf \
+		-d -p 6379:6379 -p 13333:8001 redis/redis-stack:latest
+
+.PHONY: redis-stop
+redis-stop: ## stop the redis server
+	docker stop redis
+
 .PHONY: testdata
 testdata: ## populate the database with test data
 	make migrate-reset
@@ -79,8 +89,8 @@ testdata: ## populate the database with test data
 	@docker exec -it postgres psql "$(APP_DSN)" -f /testdata/testdata.sql
 
 .PHONY: lint
-lint: ## run golint on all Go package
-	@golint $(PACKAGES)
+lint: ## run golangci-lint on all Go package
+	@golangci-lint run $(PACKAGES)
 
 .PHONY: fmt
 fmt: ## run "go fmt" on all Go packages
