@@ -90,7 +90,7 @@ testdata: ## populate the database with test data
 
 .PHONY: lint
 lint: ## run golangci-lint on all Go package (requires golangci-lint)
-	@golangci-lint run $(PACKAGES)
+	@golangci-lint run
 
 .PHONY: fmt
 fmt: ## run "go fmt" on all Go packages
