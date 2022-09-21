@@ -7,8 +7,7 @@ import (
 )
 
 type (
-	message string
-
+	message  string
 	response struct {
 		Code    int         `json:"code"`
 		Message string      `json:"message"`
@@ -25,7 +24,7 @@ const (
 )
 
 func generateStatusCode(code int) int {
-	if code > 999 {
+	if code > http.StatusNetworkAuthenticationRequired {
 		code = http.StatusBadRequest
 	}
 

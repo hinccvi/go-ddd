@@ -55,25 +55,26 @@ func NewService(cfg *config.Config, rds redis.Client, repo Repository, logger lo
 // Login authenticates a user and generates a JWT token if authentication succeeds.
 // Otherwise, an error is returned.
 func (s service) Login(ctx context.Context, username, password string) (loginResponse, error) {
-	if user, err := s.authenticate(ctx, username, password); err != nil {
+	user, err := s.authenticate(ctx, username, password)
+	if err != nil {
 		return loginResponse{}, err
-	} else {
-		accessToken, err := s.generateJWT(user, "")
-		if err != nil {
-			return loginResponse{}, err
-		}
-
-		refreshToken, err := s.generateJWT(user, "refresh")
-		if err != nil {
-			return loginResponse{}, err
-		}
-
-		if err := s.cacheRefreshToken(ctx, user.ID.String(), refreshToken); err != nil {
-			return loginResponse{}, err
-		}
-
-		return loginResponse{accessToken, refreshToken}, nil
 	}
+
+	accessToken, err := s.generateJWT(user, "")
+	if err != nil {
+		return loginResponse{}, err
+	}
+
+	refreshToken, err := s.generateJWT(user, "refresh")
+	if err != nil {
+		return loginResponse{}, err
+	}
+
+	if err = s.cacheRefreshToken(ctx, user.ID.String(), refreshToken); err != nil {
+		return loginResponse{}, err
+	}
+
+	return loginResponse{accessToken, refreshToken}, nil
 }
 
 func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, error) {
@@ -89,7 +90,7 @@ func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, e
 
 	id := uuid.MustParse(accessClaims.Subject)
 
-	if err := s.validateRefreshToken(ctx, id.String(), rt); err != nil {
+	if err = s.validateRefreshToken(ctx, id.String(), rt); err != nil {
 		return refreshResponse{}, err
 	}
 
@@ -114,8 +115,8 @@ func (s service) authenticate(ctx context.Context, username, password string) (m
 		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
 	}
 
-	if err := tools.BcryptCompare(password, user.Password); err != nil {
-		if err := s.cacheIncorrectPassword(ctx, user.ID.String()); err != nil {
+	if err = tools.BcryptCompare(password, user.Password); err != nil {
+		if err = s.cacheIncorrectPassword(ctx, user.ID.String()); err != nil {
 			return models.GetByUsernameRow{}, err
 		}
 
@@ -165,12 +166,12 @@ func (s service) parseRefreshToken(refreshToken string) (JwtCustomClaims, error)
 
 	if claims, ok := token.Claims.(JwtCustomClaims); ok && token.Valid {
 		return claims, nil
-	} else {
-		return JwtCustomClaims{}, err
 	}
+
+	return JwtCustomClaims{}, err
 }
 
-// parseAccessToken extract value from validated token that failed on expired err
+// parseAccessToken extract value from validated token that failed on expired err.
 func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
 	_, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -186,7 +187,7 @@ func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
 
 	token, _, err := new(jwt.Parser).ParseUnverified(accessToken, &JwtCustomClaims{})
 	if err != nil {
-		return JwtCustomClaims{}, nil
+		return JwtCustomClaims{}, err
 	}
 
 	claims, ok := token.Claims.(*JwtCustomClaims)
@@ -194,8 +195,8 @@ func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
 		return JwtCustomClaims{}, err
 	}
 
-	// only allow access token to be refresh 1 min before expire time
-	if time.Until(claims.ExpiresAt.Time) > (60 * time.Second) {
+	// only allow access token to be refresh just before expire time
+	if time.Until(claims.ExpiresAt.Time) > constants.JWTRemainingTime {
 		return JwtCustomClaims{}, constants.ErrConditionNotFulfil
 	}
 
@@ -212,12 +213,13 @@ func (s service) cacheIncorrectPassword(ctx context.Context, id string) error {
 	key := string(constants.GetRedisKey(constants.IncorrectPasswordKey)) + id
 
 	val, err := s.rds.Get(ctx, key).Int()
-	if err == redis.Nil {
-		return s.rds.Set(ctx, key, 1, 24*time.Hour).Err()
-	} else if err != nil {
+	switch {
+	case errors.Is(err, redis.Nil):
+		return s.rds.Set(ctx, key, 1, constants.IncorrectPasswordExpiration).Err()
+	case err != nil:
 		return err
-	} else {
-		if val >= 5 {
+	default:
+		if val >= constants.MaxLoginAttempt {
 			return constants.ErrMaxAttempt
 		}
 
@@ -229,15 +231,16 @@ func (s service) validateRefreshToken(ctx context.Context, id, refreshToken stri
 	key := string(constants.GetRedisKey(constants.RefreshTokenKey)) + id
 
 	val, err := s.rds.Get(ctx, key).Result()
-	if err == redis.Nil {
+	switch {
+	case errors.Is(err, redis.Nil):
 		return constants.ErrInvalidRefreshToken
-	} else if err != nil {
+	case err != nil:
 		return err
-	} else {
+	default:
 		if refreshToken != val {
 			return constants.ErrInvalidRefreshToken
-		} else {
-			return nil
 		}
+
+		return nil
 	}
 }

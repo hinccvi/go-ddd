@@ -19,7 +19,7 @@ func TestConnect(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, reflect.DeepEqual(config.Config{}, cfg))
 
-	zap := log.New(*flagMode, log.ApiLog)
+	zap := log.New(*flagMode, log.APILog)
 
 	db, err := Connect(&cfg, zap)
 	assert.Nil(t, err)

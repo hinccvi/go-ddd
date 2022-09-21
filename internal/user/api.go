@@ -2,14 +2,11 @@ package user
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
-	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
 )
 
@@ -43,12 +40,8 @@ func (r resource) Get(c echo.Context) error {
 		return err
 	}
 
-	user, err := r.service.Get(c.Request().Context(), req.Id)
+	user, err := r.service.Get(c.Request().Context(), req.ID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return constants.ErrResourceNotFound
-		}
-
 		return err
 	}
 
@@ -128,7 +121,7 @@ func (r resource) Update(c echo.Context) error {
 	}
 
 	arg := models.UpdateUserParams{
-		ID:       *req.Id,
+		ID:       *req.ID,
 		Username: req.Username,
 		Password: req.Password,
 	}
@@ -148,7 +141,7 @@ func (r resource) Delete(c echo.Context) error {
 		return err
 	}
 
-	user, err := r.service.Delete(context.TODO(), req.Id)
+	user, err := r.service.Delete(context.TODO(), req.ID)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
@@ -42,11 +43,11 @@ func AccessLogHandler(logger log.Logger) echo.MiddlewareFunc {
 
 			n := res.Status
 			switch {
-			case n >= 500:
+			case n >= http.StatusInternalServerError:
 				logger.Error("Server error", fields)
-			case n >= 400:
+			case n >= http.StatusBadRequest:
 				logger.Warn("Client error", fields)
-			case n >= 300:
+			case n >= http.StatusMultipleChoices:
 				logger.Info("Redirection", fields)
 			default:
 				logger.Info("Success", fields)

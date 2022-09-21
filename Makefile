@@ -89,7 +89,7 @@ testdata: ## populate the database with test data
 	@docker exec -it postgres psql "$(APP_DSN)" -f /testdata/testdata.sql
 
 .PHONY: lint
-lint: ## run golangci-lint on all Go package
+lint: ## run golangci-lint on all Go package (requires golangci-lint)
 	@golangci-lint run $(PACKAGES)
 
 .PHONY: fmt

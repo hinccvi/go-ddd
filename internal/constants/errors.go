@@ -20,13 +20,13 @@ var (
 	ErrResourceNotFound    = errors.New("resource not found")
 
 	ErrorStatusCodeMaps = map[error]int{
-		// Business logic error
-		ErrMaxAttempt: http.StatusBadRequest,
-
 		ErrInvalidCredentials:  http.StatusBadRequest,
 		ErrConditionNotFulfil:  http.StatusBadRequest,
-		ErrInvalidRefreshToken: http.StatusBadRequest,
-		ErrInvalidJwt:          http.StatusBadRequest,
 		ErrResourceNotFound:    http.StatusBadRequest,
+		ErrInvalidRefreshToken: http.StatusForbidden,
+		ErrInvalidJwt:          http.StatusForbidden,
+
+		// Business logic error
+		ErrMaxAttempt: http.StatusBadRequest,
 	}
 )

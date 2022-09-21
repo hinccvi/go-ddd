@@ -8,10 +8,10 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	assert.NotNil(t, New("local", ApiLog))
-	assert.NotNil(t, New("dev", ApiLog))
-	assert.NotNil(t, New("qa", ApiLog))
-	assert.NotNil(t, New("prod", ApiLog))
+	assert.NotNil(t, New("local", APILog))
+	assert.NotNil(t, New("dev", APILog))
+	assert.NotNil(t, New("qa", APILog))
+	assert.NotNil(t, New("prod", APILog))
 }
 
 func TestNewWithZap(t *testing.T) {

@@ -2,12 +2,15 @@ package user
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	"github.com/jackc/pgx/v4"
 )
 
 // Service encapsulates usecase logic for user.
@@ -39,6 +42,10 @@ func NewService(rds redis.Client, repo Repository, logger log.Logger) Service {
 func (s service) Get(ctx context.Context, id uuid.UUID) (User, error) {
 	item, err := s.repo.Get(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return User{}, constants.ErrResourceNotFound
+		}
+
 		return User{}, err
 	}
 
@@ -63,11 +70,13 @@ func (s service) Count(ctx context.Context) (int64, error) {
 	return s.repo.Count(ctx)
 }
 
-func (s service) Create(ctx context.Context, arg models.CreateUserParams) (u User, err error) {
-	arg.Password, err = tools.Bcrypt(arg.Password)
+func (s service) Create(ctx context.Context, arg models.CreateUserParams) (User, error) {
+	password, err := tools.Bcrypt(arg.Password)
 	if err != nil {
 		return User{}, err
 	}
+
+	arg.Password = password
 
 	ur, err := s.repo.Create(ctx, arg)
 	if err != nil {
@@ -84,12 +93,14 @@ func (s service) Create(ctx context.Context, arg models.CreateUserParams) (u Use
 	return User{user}, nil
 }
 
-func (s service) Update(ctx context.Context, arg models.UpdateUserParams) (u User, err error) {
+func (s service) Update(ctx context.Context, arg models.UpdateUserParams) (User, error) {
 	if arg.Password != "" {
-		arg.Password, err = tools.Bcrypt(arg.Password)
+		password, err := tools.Bcrypt(arg.Password)
 		if err != nil {
 			return User{}, err
 		}
+
+		arg.Password = password
 	}
 
 	ur, err := s.repo.Update(ctx, arg)
@@ -107,7 +118,7 @@ func (s service) Update(ctx context.Context, arg models.UpdateUserParams) (u Use
 	return User{user}, nil
 }
 
-func (s service) Delete(ctx context.Context, id uuid.UUID) (u User, err error) {
+func (s service) Delete(ctx context.Context, id uuid.UUID) (User, error) {
 	ur, err := s.repo.Delete(ctx, id)
 	if err != nil {
 		return User{}, err

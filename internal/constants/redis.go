@@ -1,9 +1,15 @@
 package constants
 
+import "time"
+
 type RedisKey string
 
 const (
-	prefix               RedisKey = "app:"
+	MaxLoginAttempt = 5
+
+	IncorrectPasswordExpiration = 24 * time.Hour
+
+	Prefix               RedisKey = "app:"
 	RefreshTokenKey      RedisKey = "refresh_token:"
 	IncorrectPasswordKey RedisKey = "incorrect_password:"
 	SmsCooldownKey       RedisKey = "sms_cooldown:"
@@ -13,5 +19,5 @@ const (
 )
 
 func GetRedisKey(key RedisKey) RedisKey {
-	return prefix + key
+	return Prefix + key
 }

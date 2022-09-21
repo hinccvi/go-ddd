@@ -205,7 +205,6 @@ linters:
     - unparam # reports unused function parameters
     - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
     - whitespace # detects leading and trailing whitespace
-    - ireturn # accept interfaces, return concrete types
 
     ## you may want to enable
     #- decorder # checks declaration order and count of types, constants, variables and functions
@@ -217,6 +216,7 @@ linters:
     #- prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
     #- varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
     #- wrapcheck # checks that errors returned from external packages are wrapped
+    #- ireturn # accept interfaces, return concrete types
 
     ## disabled
     #- containedctx # detects struct contained context.Context field

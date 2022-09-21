@@ -11,13 +11,13 @@ import (
 )
 
 type (
-	httpErrorHandler struct {
+	HTTPErrorHandler struct {
 		statusCodes map[error]int
 	}
 )
 
-func NewHttpErrorHandler(errorStatusCodeMaps map[error]int) *httpErrorHandler {
-	return &httpErrorHandler{
+func NewHTTPErrorHandler(errorStatusCodeMaps map[error]int) *HTTPErrorHandler {
+	return &HTTPErrorHandler{
 		statusCodes: errorStatusCodeMaps,
 	}
 }
@@ -38,7 +38,7 @@ func NewHttpErrorHandler(errorStatusCodeMaps map[error]int) *httpErrorHandler {
 // 	return originalErr
 // }
 
-func (eh *httpErrorHandler) GetStatusCode(err error) int {
+func (eh *HTTPErrorHandler) GetStatusCode(err error) int {
 	for key, value := range eh.statusCodes {
 		if errors.Is(err, key) {
 			return value
@@ -48,12 +48,14 @@ func (eh *httpErrorHandler) GetStatusCode(err error) int {
 	return http.StatusInternalServerError
 }
 
-func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Context) {
+//nolint:gocognit
+func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Context) {
 	return func(err error, c echo.Context) {
-		he, ok := err.(*echo.HTTPError)
-		if ok {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
 			if he.Internal != nil {
-				if herr, ok := he.Internal.(*echo.HTTPError); ok {
+				var herr *echo.HTTPError
+				if errors.As(he.Internal, &herr) {
 					he = herr
 				}
 			}
@@ -72,7 +74,7 @@ func (eh *httpErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 		if he.Internal != nil {
 			message = he.Internal.Error()
 		} else {
-			if message, ok = he.Message.(string); !ok {
+			if _, ok := he.Message.(string); !ok {
 				message = constants.MsgBadRequest
 			}
 		}

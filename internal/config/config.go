@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+
 	"github.com/spf13/viper"
 )
 
@@ -50,11 +52,11 @@ func Load(mode string) (Config, error) {
 	conf := new(Config)
 
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return *conf, err
-		} else {
+		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
 			return *conf, err
 		}
+
+		return *conf, err
 	}
 
 	if err := viper.Unmarshal(&conf); err != nil {

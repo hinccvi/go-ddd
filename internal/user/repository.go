@@ -18,7 +18,7 @@ type Repository interface {
 	Delete(ctx context.Context, id uuid.UUID) (models.SoftDeleteUserRow, error)
 }
 
-// repository persists albums in database
+// repository persists albums in database.
 type repository struct {
 	db     models.DBTX
 	logger log.Logger

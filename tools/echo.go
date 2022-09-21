@@ -1,13 +1,11 @@
 package tools
 
 import (
-	"time"
-
 	"github.com/gorilla/sessions"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
-
 
 func Validator[I any](c echo.Context, i *I) error {
 	if err := c.Bind(i); err != nil {
@@ -26,7 +24,7 @@ func GetSession(c echo.Context, path, env string) *sessions.Session {
 
 	sess.Options = &sessions.Options{
 		Path:     path,
-		MaxAge:   int((15 * time.Minute).Seconds()),
+		MaxAge:   int(constants.SessionMaxAge.Seconds()),
 		HttpOnly: true,
 	}
 

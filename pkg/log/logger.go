@@ -11,12 +11,17 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-type LogType string
+type (
+	Type string
+	Env  string
+)
 
 const (
-	ErrorLog LogType = "error"
-	ApiLog   LogType = "api"
-	SqlLog   LogType = "sql"
+	ErrorLog Type = "error"
+	APILog   Type = "api"
+	SQLLog   Type = "sql"
+
+	LocalEnv Env = "local"
 
 	localPath = "./"
 	devPath   = "./"
@@ -30,13 +35,13 @@ const (
 
 	//	Configuration for sql log
 	sqlLogFileName  = "sql.log"
-	sqlLogMaxSize   = 500
+	sqlLogMaxSize   = 300
 	sqlLogMaxBackup = 2
 	sqlLogMaxAge    = 3
 
 	//	Configuration for api log
 	accessLogFileName  = "api.log"
-	accessLogMaxSize   = 500
+	accessLogMaxSize   = 400
 	accessLogMaxBackup = 3
 	accessLogMaxAge    = 7
 )
@@ -73,11 +78,11 @@ type logger struct {
 	*zap.SugaredLogger
 }
 
-// New creates a new logger
-func New(env string, log LogType) *zap.Logger {
+// New creates a new logger.
+func New(env string, log Type) *zap.Logger {
 	c := new(zapcore.Core)
 
-	if env == "local" {
+	if env == string(LocalEnv) {
 		*c = zapcore.NewTee(zapcore.NewCore(encoder(env), zapcore.Lock(os.Stdout), zap.InfoLevel))
 	} else {
 		var level zapcore.Level
@@ -96,10 +101,10 @@ func New(env string, log LogType) *zap.Logger {
 		}
 
 		switch log {
-		case ApiLog:
+		case APILog:
 			level = zap.InfoLevel
 			writeSyncer = newWriteSyncer(path+accessLogFileName, accessLogMaxSize, accessLogMaxBackup, accessLogMaxAge)
-		case SqlLog:
+		case SQLLog:
 			level = zap.InfoLevel
 			writeSyncer = newWriteSyncer(path+sqlLogFileName, sqlLogMaxSize, sqlLogMaxBackup, sqlLogMaxAge)
 		case ErrorLog:
@@ -115,7 +120,7 @@ func New(env string, log LogType) *zap.Logger {
 	return l
 }
 
-// Customize log encoder
+// Customize log encoder.
 func encoder(mode string) zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
@@ -145,7 +150,8 @@ func NewWithZap(l *zap.Logger) Logger {
 	return &logger{l.Sugar()}
 }
 
-// NewForTest returns a new logger and the corresponding observed logs which can be used in unit tests to verify log entries.
+// NewForTest returns a new logger and the corresponding observed
+// logs which can be used in unit tests to verify log entries.
 func newForTest() (Logger, *observer.ObservedLogs) {
 	core, recorded := observer.New(zapcore.InfoLevel)
 	return NewWithZap(zap.New(core)), recorded

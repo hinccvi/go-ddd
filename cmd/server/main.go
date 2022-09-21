@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v9"
@@ -27,24 +27,28 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-var Version = "1.0.0"
+var (
+	//nolint:gochecknoglobals // value of ldflags must be a package level variable
+	Version = "1.0.0"
 
-var flagMode = flag.String("env", "local", "environment")
+	//nolint:gochecknoglobals // environment flag that only used in main
+	flagEnv = flag.String("env", "local", "environment")
+)
 
 func main() {
 	flag.Parse()
 
 	// create root logger tagged with server version
-	logger := log.NewWithZap(log.New(*flagMode, log.ErrorLog)).With(context.TODO(), "version", Version)
+	logger := log.NewWithZap(log.New(*flagEnv, log.ErrorLog)).With(context.TODO(), "version", Version)
 
 	// load application configurations
-	cfg, err := config.Load(*flagMode)
+	cfg, err := config.Load(*flagEnv)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
 	// connect to database
-	dbx, err := db.Connect(&cfg, log.New(*flagMode, log.SqlLog))
+	dbx, err := db.Connect(&cfg, log.New(*flagEnv, log.SQLLog))
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -56,14 +60,15 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.App.Port),
-		Handler: buildHandler(*flagMode, logger, rds, dbx, &cfg),
+		Addr:              fmt.Sprintf(":%d", cfg.App.Port),
+		Handler:           buildHandler(logger, rds, dbx, &cfg),
+		ReadHeaderTimeout: constants.RequestTimeout,
 	}
 
 	logger.Infof("Server listening on %s", server.Addr)
 
 	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal(err)
 		}
 	}()
@@ -74,21 +79,21 @@ func main() {
 
 	logger.Info("Server shutting down")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ContextTimeoutDuration)
 	defer cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
-		logger.Fatal(err)
+	if err = server.Shutdown(ctx); err != nil {
+		logger.Info(err)
 	}
 
 	logger.Info("Server exiting")
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(mode string, logger log.Logger, rds redis.Client, dbx models.DBTX, cfg *config.Config) *echo.Echo {
+func buildHandler(logger log.Logger, rds redis.Client, dbx models.DBTX, cfg *config.Config) *echo.Echo {
 	e := echo.New()
 
-	e.HTTPErrorHandler = m.NewHttpErrorHandler(constants.ErrorStatusCodeMaps).Handler(logger)
+	e.HTTPErrorHandler = m.NewHTTPErrorHandler(constants.ErrorStatusCodeMaps).Handler(logger)
 
 	e.Use(buildMiddleware()...)
 
@@ -125,7 +130,7 @@ func buildHandler(mode string, logger log.Logger, rds redis.Client, dbx models.D
 // buildMiddleware sets up the middlewre logic and builds a handler.
 func buildMiddleware() []echo.MiddlewareFunc {
 	var middlewares []echo.MiddlewareFunc
-	logger := log.NewWithZap(log.New(*flagMode, log.ApiLog)).With(context.TODO(), "version", Version)
+	logger := log.NewWithZap(log.New(*flagEnv, log.APILog)).With(context.TODO(), "version", Version)
 
 	middlewares = append(middlewares,
 
@@ -135,7 +140,7 @@ func buildMiddleware() []echo.MiddlewareFunc {
 		middleware.Secure(),
 
 		middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-			Timeout:      5 * time.Second,
+			Timeout:      constants.RequestTimeout,
 			ErrorMessage: constants.MsgRequestTimeout,
 		}),
 

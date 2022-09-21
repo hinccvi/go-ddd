@@ -50,7 +50,7 @@ func (r resource) refresh(c echo.Context) error {
 	}
 
 	tokenString := c.Request().Header.Get("Authorization")
-	accessToken := strings.SplitN(tokenString, " ", 2)
+	accessToken := strings.Split(tokenString, " ")
 
 	res, err := r.service.Refresh(c.Request().Context(), accessToken[1], req.RefreshToken)
 	if err != nil {
