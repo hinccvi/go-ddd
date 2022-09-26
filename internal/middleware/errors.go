@@ -74,7 +74,9 @@ func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 		if he.Internal != nil {
 			message = he.Internal.Error()
 		} else {
-			if _, ok := he.Message.(string); !ok {
+			if msg, ok := he.Message.(string); ok {
+				message = msg
+			} else {
 				message = constants.MsgBadRequest
 			}
 		}

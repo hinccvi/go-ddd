@@ -1,6 +1,5 @@
 version: '3.9'
 services:
-
   server:
     image: server
     build:
@@ -10,8 +9,10 @@ services:
       - /tmp/app:/var/log/app
     ports:
       - "8022:8022"
+    networks:
+      - app
     environment:
-      - APP_ENV=local
+      - APP_ENV=dev
       - APP_DSN=postgresql://localhost/postgres?sslmode=disable&user=postgres&password=postgres
     depends_on:
       db:
@@ -22,7 +23,13 @@ services:
   db:
     image: "postgres:alpine"
     command: postgres -c 'max_connections=200'
-    restart: always
+    ports:
+      - "5432"
+    deploy:
+      restart_policy:
+        condition: on-failure
+    networks:
+      app:
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
@@ -35,14 +42,21 @@ services:
 
   redis:
     image: redis:alpine
+    volumes:
+      - /tmp/redis/redis.conf:/redis.conf
     ports:
       - "6379"
-    networks:
-      - host
     deploy:
-      replicas: 2
-      update_config:
-        parallelism: 2
-        delay: 10s
       restart_policy:
         condition: on-failure
+    networks:
+      app:
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+networks:
+  app: 
+  

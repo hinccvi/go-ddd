@@ -24,7 +24,7 @@ const (
 	LocalEnv Env = "local"
 
 	localPath = "./"
-	devPath   = "./"
+	devPath   = "/var/log/app/"
 	prodPath  = "/www/wwwlog/"
 
 	//	Configuration for error log
