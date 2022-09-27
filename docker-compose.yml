@@ -9,15 +9,11 @@ services:
       - /tmp/app:/var/log/app
     ports:
       - "8022:8022"
-    networks:
-      - app
     environment:
       - APP_ENV=dev
-      - APP_DSN=postgresql://localhost/postgres?sslmode=disable&user=postgres&password=postgres
+      - APP_DSN=postgresql://db/postgres?sslmode=disable&user=postgres&password=postgres
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
 
   db:
@@ -28,8 +24,6 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-    networks:
-      app:
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
@@ -43,20 +37,10 @@ services:
   redis:
     image: redis:alpine
     volumes:
-      - /tmp/redis/redis.conf:/redis.conf
+      - /tmp/redis/redis.conf:/usr/local/etc/redis/redis.conf
     ports:
       - "6379"
+    command: redis-server /usr/local/etc/redis/redis.conf
     deploy:
       restart_policy:
         condition: on-failure
-    networks:
-      app:
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 1s
-      timeout: 3s
-      retries: 5
-
-networks:
-  app: 
-  

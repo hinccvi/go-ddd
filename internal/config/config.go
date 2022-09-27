@@ -30,10 +30,10 @@ type Config struct {
 	} `mapstructure:"redis"`
 }
 
-func Load(mode string) (Config, error) {
+func Load(env string) (Config, error) {
 	file := ""
 
-	switch mode {
+	switch env {
 	case "local":
 		file = "local"
 	case "dev":

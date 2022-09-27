@@ -5,7 +5,8 @@ LDFLAGS := -ldflags "-X main.Version=${VERSION}"
 
 CONFIG_FILE ?= ./config/local.yml
 APP_DSN ?= $(shell sed -n 's/^dsn:[[:space:]]*"\(.*\)"/\1/p' $(CONFIG_FILE))
-MIGRATE := migrate -path migrations -database "$(APP_DSN)" 
+MIGRATE := migrate -path migrations -database "$(APP_DSN)"
+DOCKER_REPOSITORY := hinccvi/server
 
 PID_FILE := './.pid'
 FSWATCH_FILE := './fswatch.cfg'
@@ -50,8 +51,12 @@ build:  ## build the API server binary
 	CGO_ENABLED=0 go build ${LDFLAGS} -a -o server $(MODULE)/cmd/server
 
 .PHONY: build-docker
-build-docker: ## build the API server as a docker image
-	docker build -f cmd/server/Dockerfile -t server .
+build-docker: ## build the program as a docker image
+	docker build -f cmd/server/Dockerfile -t $(DOCKER_REPOSITORY):$(VERSION) .
+
+.PHONY: push-docker
+push-docker: ## push docker image to dockerhub
+	docker push $(DOCKER_REPOSITORY):$(VERSION)
 
 .PHONY: clean
 clean: ## remove temporary files
