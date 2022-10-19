@@ -3,13 +3,13 @@ package user
 import "github.com/google/uuid"
 
 type (
-	getOrDeleteUserRequest struct {
-		ID uuid.UUID `query:"id" validate:"required"`
+	getUserRequest struct {
+		ID uuid.UUID `param:"id" validate:"required"`
 	}
 
 	queryUserRequest struct {
-		Limit  uint32  `query:"limit"`
-		Offset *uint32 `query:"offset"`
+		Limit  int32  `query:"limit"`
+		Offset *int32 `query:"offset"`
 	}
 
 	createUserRequest struct {
@@ -18,8 +18,12 @@ type (
 	}
 
 	updateUserRequest struct {
-		ID       *uuid.UUID `json:"id" validate:"required"`
-		Username string     `json:"username"`
-		Password string     `json:"password"`
+		ID       uuid.UUID `json:"id" validate:"required"`
+		Username string    `json:"username"`
+		Password string    `json:"password"`
+	}
+
+	deleteUserRequest struct {
+		ID uuid.UUID `param:"id" validate:"required"`
 	}
 )

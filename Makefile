@@ -1,6 +1,6 @@
 MODULE = $(shell go list -m)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "1.0.0")
-PACKAGES := $(shell go list ./... | grep -v /vendor/)
+PACKAGES := $(shell go list ./... | grep -v "/internal/test")
 LDFLAGS := -ldflags "-X main.Version=${VERSION}"
 
 CONFIG_FILE ?= ./config/local.yml
@@ -33,6 +33,7 @@ test-cover: test ## run unit tests and show test coverage information
 .PHONY: run
 run: ## run the API server
 	go run ${LDFLAGS} cmd/server/main.go
+	
 
 .PHONY: run-restart
 run-restart: ## restart the API server
@@ -47,12 +48,18 @@ run-live: ## run the API server with live reload support (requires fswatch)
 	@fswatch -x -o --event Created --event Updated --event Renamed -r internal pkg cmd config | xargs -n1 -I {} make run-restart
 
 .PHONY: build
-build:  ## build the API server binary
+build:  ## build the arm API server binary
 	CGO_ENABLED=0 go build ${LDFLAGS} -a -o server $(MODULE)/cmd/server
 
+build-amd64:  ## build the amd64 API server binary
+	CGO_ENABLED=0 GOARCH=amd64 go build ${LDFLAGS} -a -o server $(MODULE)/cmd/server
+
 .PHONY: build-docker
-build-docker: ## build the program as a docker image
+build-docker: ## build the program as a arm docker image
 	docker build -f cmd/server/Dockerfile -t $(DOCKER_REPOSITORY):$(VERSION) .
+
+build-docker-amd64: ## build the program as a amd64 docker image
+	docker build --platform=linux/amd64 -f cmd/server/Dockerfile -t $(DOCKER_REPOSITORY):$(VERSION) .
 
 .PHONY: push-docker
 push-docker: ## push docker image to dockerhub
@@ -79,13 +86,32 @@ db-stop: ## stop the database server
 
 .PHONY: redis-start
 redis-start: ## start the redis server
+	@mkdir -p $(shell pwd)/testdata/redis
+	@cp  $(shell pwd)/deployments/redis.conf $(shell pwd)/testdata/redis/redis.conf
 	docker run --rm --name redis \
-		-v $(shell pwd)/testdata/redis/local-redis-stack.conf:/redis-stack.conf \
-		-d -p 6379:6379 -p 13333:8001 redis/redis-stack:latest
+		-v $(shell pwd)/testdata/redis:/usr/local/etc/redis \
+		-d -p 6379:6379 redis redis-server /usr/local/etc/redis/redis.conf
 
 .PHONY: redis-stop
 redis-stop: ## stop the redis server
 	docker stop redis
+
+.PHONY: nginx-start
+nginx-start: ## start the nginx server
+	@mkdir -p $(shell pwd)/testdata/nginx
+	@touch $(shell pwd)/testdata/nginx/access.log
+	@touch $(shell pwd)/testdata/nginx/error.log
+	@cp  $(shell pwd)/deployments/nginx.conf $(shell pwd)/testdata/nginx/nginx.conf
+	docker run --rm --name nginx \
+		-v $(shell pwd)/testdata/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+		-v $(shell pwd)/testdata/nginx:/var/log/nginx \
+		-v $(shell pwd)/testdata/nginx:/var/log/nginx \
+		-v $(shell pwd)/testdata/nginx:/tmp/cache \
+		-dp 80:80 nginx nginx-debug -g 'daemon off;'
+
+.PHONY: nginx-stop
+nginx-stop: ## stop the nginx server
+	docker stop nginx
 
 .PHONY: testdata
 testdata: ## populate the database with test data

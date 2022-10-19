@@ -25,7 +25,10 @@ RUN make build
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates bash
+RUN apk update && \
+    apk add curl
 RUN mkdir -p /var/log/app
+RUN mkdir -p /var/www/app
 WORKDIR /app/
 COPY --from=build /usr/local/bin/migrate /usr/local/bin
 COPY --from=build /app/migrations ./migrations/

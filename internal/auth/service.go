@@ -12,7 +12,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	hTools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/hash"
 )
 
 // Service encapsulates the authentication logic.
@@ -115,7 +115,7 @@ func (s service) authenticate(ctx context.Context, username, password string) (m
 		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
 	}
 
-	if err = tools.BcryptCompare(password, user.Password); err != nil {
+	if err = hTools.BcryptCompare(password, user.Password); err != nil {
 		if err = s.cacheIncorrectPassword(ctx, user.ID.String()); err != nil {
 			return models.GetByUsernameRow{}, err
 		}

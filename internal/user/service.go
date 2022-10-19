@@ -9,128 +9,141 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/hash"
 	"github.com/jackc/pgx/v4"
 )
 
-// Service encapsulates usecase logic for user.
-type Service interface {
-	Get(ctx context.Context, id uuid.UUID) (User, error)
-	Query(ctx context.Context, arg models.ListUserParams) ([]User, error)
-	Count(ctx context.Context) (int64, error)
-	Create(ctx context.Context, arg models.CreateUserParams) (User, error)
-	Update(ctx context.Context, arg models.UpdateUserParams) (User, error)
-	Delete(ctx context.Context, id uuid.UUID) (User, error)
-}
+type (
+	// Service encapsulates usecase logic for user.
+	Service interface {
+		Get(ctx context.Context) (models.GetUserRow, error)
+		Query(ctx context.Context) (List, error)
+		Create(ctx context.Context) (models.CreateUserRow, error)
+		Update(ctx context.Context) (models.UpdateUserRow, error)
+		Delete(ctx context.Context) (models.SoftDeleteUserRow, error)
+	}
 
-// User represents the data about a user.
-type User struct {
-	models.User
-}
+	List struct {
+		List  []models.ListUserRow `json:"list"`
+		Total int64                `json:"total"`
+	}
 
-type service struct {
-	rds    redis.Client
-	repo   Repository
-	logger log.Logger
-}
+	service struct {
+		rds    redis.Client
+		repo   Repository
+		logger log.Logger
+	}
+
+	key int
+)
+
+const (
+	ctxID key = iota
+	ctxListUser
+	ctxCreateUser
+	ctxUpdateUser
+)
 
 // NewService creates a new user service.
 func NewService(rds redis.Client, repo Repository, logger log.Logger) Service {
 	return service{rds, repo, logger}
 }
 
-func (s service) Get(ctx context.Context, id uuid.UUID) (User, error) {
+func (s service) Get(ctx context.Context) (models.GetUserRow, error) {
+	id, ok := ctx.Value(ctxID).(uuid.UUID)
+	if !ok {
+		return models.GetUserRow{}, constants.ErrSystemError
+	}
+
 	item, err := s.repo.Get(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return User{}, constants.ErrResourceNotFound
+			return models.GetUserRow{}, constants.ErrResourceNotFound
 		}
 
-		return User{}, err
+		return models.GetUserRow{}, err
 	}
 
-	return User{item}, nil
+	return item, nil
 }
 
-func (s service) Query(ctx context.Context, arg models.ListUserParams) ([]User, error) {
-	items, err := s.repo.Query(ctx, arg)
+func (s service) Query(ctx context.Context) (List, error) {
+	args, ok := ctx.Value(ctxListUser).(models.ListUserParams)
+	if !ok {
+		return List{}, constants.ErrSystemError
+	}
+
+	items, err := s.repo.Query(ctx, args)
 	if err != nil {
-		return []User{}, err
+		return List{}, err
 	}
 
-	users := []User{}
-	for _, v := range items {
-		users = append(users, User{v})
+	total, err := s.repo.Count(ctx)
+	if err != nil {
+		return List{}, err
 	}
 
-	return users, nil
+	return List{items, total}, nil
 }
 
 func (s service) Count(ctx context.Context) (int64, error) {
 	return s.repo.Count(ctx)
 }
 
-func (s service) Create(ctx context.Context, arg models.CreateUserParams) (User, error) {
-	password, err := tools.Bcrypt(arg.Password)
+func (s service) Create(ctx context.Context) (models.CreateUserRow, error) {
+	args, ok := ctx.Value(ctxCreateUser).(models.CreateUserParams)
+	if !ok {
+		return models.CreateUserRow{}, constants.ErrSystemError
+	}
+
+	hashedPassword, err := tools.Bcrypt(args.Password, constants.BcryptCost)
 	if err != nil {
-		return User{}, err
+		return models.CreateUserRow{}, err
 	}
 
-	arg.Password = password
+	args.Password = hashedPassword
 
-	ur, err := s.repo.Create(ctx, arg)
+	item, err := s.repo.Create(ctx, args)
 	if err != nil {
-		return User{}, err
+		return models.CreateUserRow{}, err
 	}
 
-	user := models.User{
-		ID:        ur.ID,
-		Username:  ur.Username,
-		CreatedAt: ur.CreatedAt,
-		UpdatedAt: ur.UpdatedAt,
-	}
-
-	return User{user}, nil
+	return item, nil
 }
 
-func (s service) Update(ctx context.Context, arg models.UpdateUserParams) (User, error) {
-	if arg.Password != "" {
-		password, err := tools.Bcrypt(arg.Password)
+func (s service) Update(ctx context.Context) (models.UpdateUserRow, error) {
+	args, ok := ctx.Value(ctxUpdateUser).(models.UpdateUserParams)
+	if !ok {
+		return models.UpdateUserRow{}, constants.ErrSystemError
+	}
+
+	if args.Password != "" {
+		hashedPassword, err := tools.Bcrypt(args.Password, constants.BcryptCost)
 		if err != nil {
-			return User{}, err
+			return models.UpdateUserRow{}, err
 		}
 
-		arg.Password = password
+		args.Password = hashedPassword
 	}
 
-	ur, err := s.repo.Update(ctx, arg)
+	item, err := s.repo.Update(ctx, args)
 	if err != nil {
-		return User{}, err
+		return models.UpdateUserRow{}, err
 	}
 
-	user := models.User{
-		ID:        ur.ID,
-		Username:  ur.Username,
-		CreatedAt: ur.CreatedAt,
-		UpdatedAt: ur.UpdatedAt,
-	}
-
-	return User{user}, nil
+	return item, nil
 }
 
-func (s service) Delete(ctx context.Context, id uuid.UUID) (User, error) {
-	ur, err := s.repo.Delete(ctx, id)
+func (s service) Delete(ctx context.Context) (models.SoftDeleteUserRow, error) {
+	id, ok := ctx.Value(ctxID).(uuid.UUID)
+	if !ok {
+		return models.SoftDeleteUserRow{}, constants.ErrSystemError
+	}
+
+	item, err := s.repo.Delete(ctx, id)
 	if err != nil {
-		return User{}, err
+		return models.SoftDeleteUserRow{}, err
 	}
 
-	user := models.User{
-		ID:        ur.ID,
-		Username:  ur.Username,
-		CreatedAt: ur.CreatedAt,
-		UpdatedAt: ur.UpdatedAt,
-		DeletedAt: ur.DeletedAt,
-	}
-
-	return User{user}, nil
+	return item, nil
 }

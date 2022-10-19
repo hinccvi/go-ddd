@@ -6,15 +6,13 @@ import (
 
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/response"
 	"github.com/labstack/echo/v4"
 )
 
-type (
-	HTTPErrorHandler struct {
-		statusCodes map[error]int
-	}
-)
+type HTTPErrorHandler struct {
+	statusCodes map[error]int
+}
 
 func NewHTTPErrorHandler(errorStatusCodeMaps map[error]int) *HTTPErrorHandler {
 	return &HTTPErrorHandler{
@@ -90,7 +88,7 @@ func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			if c.Request().Method == http.MethodHead {
 				err = c.NoContent(he.Code)
 			} else {
-				err = tools.RespOkWithData(c, code, tools.MsgError, struct {
+				err = tools.RespWithData(c, code, tools.Error, struct {
 					Error string `json:"error"`
 				}{message})
 			}

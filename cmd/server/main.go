@@ -22,7 +22,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	rds "github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/redis"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	uTools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -38,8 +38,11 @@ var (
 func main() {
 	flag.Parse()
 
+	// create root context
+	ctx := context.Background()
+
 	// create root logger tagged with server version
-	logger := log.NewWithZap(log.New(*flagEnv, log.ErrorLog)).With(context.TODO(), "version", Version)
+	logger := log.NewWithZap(log.New(*flagEnv, log.ErrorLog)).With(ctx, "version", Version)
 
 	// load application configurations
 	cfg, err := config.Load(*flagEnv)
@@ -79,7 +82,7 @@ func main() {
 
 	logger.Info("Server shutting down")
 
-	ctx, cancel := context.WithTimeout(context.Background(), constants.ContextTimeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, constants.ContextTimeoutDuration)
 	defer cancel()
 
 	if err = server.Shutdown(ctx); err != nil {
@@ -130,7 +133,7 @@ func buildHandler(logger log.Logger, rds redis.Client, dbx models.DBTX, cfg *con
 // buildMiddleware sets up the middlewre logic and builds a handler.
 func buildMiddleware() []echo.MiddlewareFunc {
 	var middlewares []echo.MiddlewareFunc
-	logger := log.NewWithZap(log.New(*flagEnv, log.APILog)).With(context.TODO(), "version", Version)
+	logger := log.NewWithZap(log.New(*flagEnv, log.AccessLog)).With(context.TODO(), "version", Version)
 
 	middlewares = append(middlewares,
 
@@ -146,12 +149,14 @@ func buildMiddleware() []echo.MiddlewareFunc {
 
 		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 			Generator: func() string {
-				return tools.GenerateUUIDv4().String()
+				u, err := uTools.GenerateUUIDv4()
+				for err != nil {
+					u, err = uTools.GenerateUUIDv4()
+				}
+
+				return u.String()
 			},
 		}),
-
-		// Session
-		// session.Middleware(sessions.NewCookieStore([]byte("secret"))),
 
 		// Api access log
 		m.AccessLogHandler(logger),

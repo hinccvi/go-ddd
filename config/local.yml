@@ -13,6 +13,6 @@ dsn: "postgresql://localhost/postgres?sslmode=disable&user=postgres&password=pos
 redis:
   host: "127.0.0.1"
   port: 6379
-  password: testing
+  password: redis
   db: 0
   pool_size: 500

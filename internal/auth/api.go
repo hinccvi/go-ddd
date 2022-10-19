@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/response"
 	"github.com/labstack/echo/v4"
 )
 
@@ -30,7 +30,11 @@ type resource struct {
 func (r resource) login(c echo.Context) error {
 	var req loginRequest
 
-	if err := tools.Validator(c, &req); err != nil {
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	if err := c.Validate(&req); err != nil {
 		return err
 	}
 
@@ -39,13 +43,17 @@ func (r resource) login(c echo.Context) error {
 		return err
 	}
 
-	return tools.RespOkWithData(c, http.StatusOK, tools.MsgSuccess, res)
+	return tools.RespWithData(c, http.StatusOK, tools.Success, res)
 }
 
 func (r resource) refresh(c echo.Context) error {
 	var req refreshRequest
 
-	if err := tools.Validator(c, &req); err != nil {
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	if err := c.Validate(&req); err != nil {
 		return err
 	}
 
@@ -57,5 +65,5 @@ func (r resource) refresh(c echo.Context) error {
 		return err
 	}
 
-	return tools.RespOkWithData(c, http.StatusOK, tools.MsgSuccess, res)
+	return tools.RespWithData(c, http.StatusOK, tools.Success, res)
 }

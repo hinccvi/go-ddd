@@ -18,6 +18,8 @@ var (
 	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 	ErrInvalidJwt          = errors.New("invalid token")
 	ErrResourceNotFound    = errors.New("resource not found")
+	ErrCRUD                = errors.New("error crud")
+	ErrSystemError         = errors.New("system error")
 
 	ErrorStatusCodeMaps = map[error]int{
 		ErrInvalidCredentials:  http.StatusBadRequest,
@@ -25,6 +27,7 @@ var (
 		ErrResourceNotFound:    http.StatusBadRequest,
 		ErrInvalidRefreshToken: http.StatusForbidden,
 		ErrInvalidJwt:          http.StatusForbidden,
+		ErrSystemError:         http.StatusInternalServerError,
 
 		// Business logic error
 		ErrMaxAttempt: http.StatusBadRequest,
