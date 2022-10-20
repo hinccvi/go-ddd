@@ -3,14 +3,27 @@ package test
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
 	"github.com/labstack/echo/v4"
+)
+
+type (
+	data struct {
+		UserName string
+	}
+
+	jwtCustomClaims struct {
+		data
+		jwt.RegisteredClaims
+	}
 )
 
 // MockRouter creates a echo router for testing APIs.
@@ -25,31 +38,54 @@ func MockRouter(logger log.Logger) *echo.Echo {
 }
 
 // MockAuthHeader returns an HTTP header that can pass the authentication check by MockAuthHandler.
-func MockAuthHeader() http.Header {
-	jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{})
-	token, _ := jwt.SignedString([]byte("secret"))
+func MockAuthHeader(id, username string) http.Header {
+	issuedAt := time.Now()
+	expiresAt := issuedAt.Add(1 * time.Minute)
+	signingKey := []byte("secret")
+
+	token := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwtCustomClaims{
+			data: data{UserName: username},
+			RegisteredClaims: jwt.RegisteredClaims{
+				Issuer:    "test",
+				Subject:   id,
+				Audience:  jwt.ClaimStrings{"all"},
+				IssuedAt:  jwt.NewNumericDate(issuedAt),
+				ExpiresAt: jwt.NewNumericDate(expiresAt),
+				ID:        uuid.NewString(),
+			},
+		},
+	)
+
+	jwt, _ := token.SignedString(signingKey)
 
 	header := http.Header{}
-	header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	header.Add("Authorization", fmt.Sprintf("Bearer %s", jwt))
 	return header
 }
 
-// func MockGenerateJWT() (string, error) {
+func MockRefreshToken(id, username string) string {
+	issuedAt := time.Now()
+	expiresAt := issuedAt.Add(1 * time.Minute)
+	signingKey := []byte("secret")
 
-// }
+	token := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwtCustomClaims{
+			data{UserName: username},
+			jwt.RegisteredClaims{
+				Issuer:    "test",
+				Subject:   id,
+				Audience:  jwt.ClaimStrings{"all"},
+				IssuedAt:  jwt.NewNumericDate(issuedAt),
+				ExpiresAt: jwt.NewNumericDate(expiresAt),
+				ID:        uuid.NewString(),
+			},
+		},
+	)
 
-// func MockParseJWT(token string) (jwt.MapClaims, error) {
-// 	j, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-// 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-// 			return nil, constants.ErrInvalidJwt
-// 		}
+	jwt, _ := token.SignedString(signingKey)
 
-// 		return []byte("secret"), nil
-// 	})
-
-// 	if claims, ok := j.Claims.(jwt.MapClaims); ok && j.Valid {
-// 		return claims, nil
-// 	}
-
-// 	return jwt.MapClaims{}, err
-// }
+	return jwt
+}

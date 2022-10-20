@@ -1,8 +1,6 @@
 package config
 
 import (
-	"errors"
-
 	"github.com/spf13/viper"
 )
 
@@ -31,31 +29,16 @@ type Config struct {
 }
 
 func Load(env string) (Config, error) {
-	file := ""
-
-	switch env {
-	case "local":
-		file = "local"
-	case "dev":
-		file = "dev"
-	case "qa":
-		file = "qa"
-	case "prod":
-		file = "prod"
-	}
+	file := env
 
 	viper.SetConfigName(file)
 	viper.SetConfigType("yml")
-	viper.AddConfigPath("./config/")
-	viper.AddConfigPath("../../config/")
+	viper.AddConfigPath("./config")
+	viper.AddConfigPath("../../config")
 
 	conf := new(Config)
 
 	if err := viper.ReadInConfig(); err != nil {
-		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
-			return *conf, err
-		}
-
 		return *conf, err
 	}
 

@@ -27,7 +27,7 @@ RETURNING id, username;
 DELETE FROM "user" WHERE id = $1;
 
 -- name: SoftDeleteUser :one
-UPDATE "user" SET deleted_at = (current_timestamp AT TIME ZONE 'UTC') WHERE id = $1 RETURNING id, username;
+UPDATE "user" SET deleted_at = (current_timestamp AT TIME ZONE 'UTC') WHERE id = $1 AND deleted_at IS NULL RETURNING id, username;
 
 -- name: GetByUsername :one
 SELECT id, username, password FROM "user" WHERE username = $1 AND deleted_at IS NULL LIMIT 1;

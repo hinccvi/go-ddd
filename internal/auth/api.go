@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/response"
 	"github.com/labstack/echo/v4"
@@ -38,7 +40,11 @@ func (r resource) login(c echo.Context) error {
 		return err
 	}
 
-	res, err := r.service.Login(c.Request().Context(), req.Username, req.Password)
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, ctxUsername, req.Username)
+	ctx = context.WithValue(ctx, ctxPassword, req.Password)
+
+	res, err := r.service.Login(ctx)
 	if err != nil {
 		return err
 	}
@@ -58,9 +64,17 @@ func (r resource) refresh(c echo.Context) error {
 	}
 
 	tokenString := c.Request().Header.Get("Authorization")
-	accessToken := strings.Split(tokenString, " ")
+	accessTokenArr := strings.Split(tokenString, " ")
 
-	res, err := r.service.Refresh(c.Request().Context(), accessToken[1], req.RefreshToken)
+	if len(accessTokenArr) != constants.JWTpart {
+		return constants.ErrInvalidJwt
+	}
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, ctxAccessToken, accessTokenArr[1])
+	ctx = context.WithValue(ctx, ctxRefreshToken, req.RefreshToken)
+
+	res, err := r.service.Refresh(ctx)
 	if err != nil {
 		return err
 	}

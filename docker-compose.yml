@@ -17,6 +17,7 @@ services:
     environment:
       - APP_ENV=dev
       - APP_DSN=postgresql://db/postgres?sslmode=disable&user=postgres&password=postgres
+      - CONFIGPATH=/www/wwwroot/app/
     depends_on:
       db:
         condition: service_healthy

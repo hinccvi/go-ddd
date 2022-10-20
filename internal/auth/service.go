@@ -15,37 +15,57 @@ import (
 	hTools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/hash"
 )
 
-// Service encapsulates the authentication logic.
-type Service interface {
-	// authenticate authenticates a user using username and password.
-	// It returns a JWT token if authentication succeeds. Otherwise, an error is returned.
-	Login(ctx context.Context, username, password string) (loginResponse, error)
-	Refresh(ctx context.Context, at, rt string) (refreshResponse, error)
-}
+type (
+	// Service encapsulates the authentication logic.
+	Service interface {
+		// authenticate authenticates a user using username and password.
+		// It returns a JWT token if authentication succeeds. Otherwise, an error is returned.
+		Login(ctx context.Context) (loginResponse, error)
+		Refresh(ctx context.Context) (refreshResponse, error)
+	}
 
-// Identity represents an authenticated user identity.
-type Identity interface {
-	// GetID returns the user ID.
-	GetID() string
-	// GetName returns the user name.
-	GetName() string
-}
+	// Identity represents an authenticated user identity.
+	Identity interface {
+		// GetID returns the user ID.
+		GetID() string
+		// GetName returns the user name.
+		GetName() string
+	}
 
-type Data struct {
-	UserName string
-}
+	Data struct {
+		UserName string
+	}
 
-type JwtCustomClaims struct {
-	Data
-	jwt.RegisteredClaims
-}
+	JwtCustomClaims struct {
+		Data
+		jwt.RegisteredClaims
+	}
 
-type service struct {
-	cfg    *config.Config
-	rds    redis.Client
-	logger log.Logger
-	repo   Repository
-}
+	service struct {
+		cfg    *config.Config
+		rds    redis.Client
+		logger log.Logger
+		repo   Repository
+	}
+
+	key int
+
+	loginResponse struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	refreshResponse struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+)
+
+const (
+	ctxUsername key = iota
+	ctxPassword
+	ctxAccessToken
+	ctxRefreshToken
+)
 
 // NewService creates a new authentication service.
 func NewService(cfg *config.Config, rds redis.Client, repo Repository, logger log.Logger) Service {
@@ -54,7 +74,17 @@ func NewService(cfg *config.Config, rds redis.Client, repo Repository, logger lo
 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
 // Otherwise, an error is returned.
-func (s service) Login(ctx context.Context, username, password string) (loginResponse, error) {
+func (s service) Login(ctx context.Context) (loginResponse, error) {
+	username, ok := ctx.Value(ctxUsername).(string)
+	if !ok {
+		return loginResponse{}, constants.ErrSystemError
+	}
+
+	password, ok := ctx.Value(ctxPassword).(string)
+	if !ok {
+		return loginResponse{}, constants.ErrSystemError
+	}
+
 	user, err := s.authenticate(ctx, username, password)
 	if err != nil {
 		return loginResponse{}, err
@@ -77,7 +107,17 @@ func (s service) Login(ctx context.Context, username, password string) (loginRes
 	return loginResponse{accessToken, refreshToken}, nil
 }
 
-func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, error) {
+func (s service) Refresh(ctx context.Context) (refreshResponse, error) {
+	at, ok := ctx.Value(ctxAccessToken).(string)
+	if !ok {
+		return refreshResponse{}, constants.ErrSystemError
+	}
+
+	rt, ok := ctx.Value(ctxRefreshToken).(string)
+	if !ok {
+		return refreshResponse{}, constants.ErrSystemError
+	}
+
 	_, err := s.parseRefreshToken(rt)
 	if err != nil {
 		return refreshResponse{}, err
@@ -88,7 +128,10 @@ func (s service) Refresh(ctx context.Context, at, rt string) (refreshResponse, e
 		return refreshResponse{}, err
 	}
 
-	id := uuid.MustParse(accessClaims.Subject)
+	id, err := uuid.Parse(accessClaims.Subject)
+	if err != nil {
+		return refreshResponse{}, err
+	}
 
 	if err = s.validateRefreshToken(ctx, id.String(), rt); err != nil {
 		return refreshResponse{}, err
@@ -163,6 +206,10 @@ func (s service) parseRefreshToken(refreshToken string) (JwtCustomClaims, error)
 
 		return []byte(s.cfg.Jwt.RefreshSigningKey), nil
 	})
+
+	if token == nil {
+		return JwtCustomClaims{}, constants.ErrInvalidJwt
+	}
 
 	if claims, ok := token.Claims.(JwtCustomClaims); ok && token.Valid {
 		return claims, nil

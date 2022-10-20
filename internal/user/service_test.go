@@ -3,13 +3,13 @@ package user
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/uuid"
+	"github.com/jackc/pgx/v4"
 )
 
 type mockRepository struct {
@@ -28,7 +28,7 @@ func (m *mockRepository) Get(ctx context.Context, id uuid.UUID) (models.GetUserR
 		}
 	}
 
-	return models.GetUserRow{}, errors.New("testing")
+	return models.GetUserRow{}, pgx.ErrNoRows
 }
 
 func (m *mockRepository) Count(ctx context.Context) (int64, error) {

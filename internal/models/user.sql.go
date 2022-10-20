@@ -120,7 +120,7 @@ func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]ListUserR
 }
 
 const softDeleteUser = `-- name: SoftDeleteUser :one
-UPDATE "user" SET deleted_at = (current_timestamp AT TIME ZONE 'UTC') WHERE id = $1 RETURNING id, username
+UPDATE "user" SET deleted_at = (current_timestamp AT TIME ZONE 'UTC') WHERE id = $1 AND deleted_at IS NULL RETURNING id, username
 `
 
 type SoftDeleteUserRow struct {

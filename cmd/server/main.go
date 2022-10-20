@@ -57,7 +57,7 @@ func main() {
 	}
 
 	// connect to redis
-	rds, err := rds.Connect(cfg)
+	rds, err := rds.Connect(ctx, cfg)
 	if err != nil {
 		logger.Fatal(err)
 	}

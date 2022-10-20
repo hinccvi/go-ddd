@@ -8,7 +8,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 )
 
-func Connect(cfg config.Config) (redis.Client, error) {
+func Connect(ctx context.Context, cfg config.Config) (redis.Client, error) {
 	rds := redis.NewClient(
 		&redis.Options{
 			Addr: fmt.Sprintf("%s:%d",
@@ -20,7 +20,7 @@ func Connect(cfg config.Config) (redis.Client, error) {
 			PoolSize: cfg.Redis.PoolSize,
 		})
 
-	_, err := rds.Ping(context.Background()).Result()
+	_, err := rds.Ping(ctx).Result()
 
 	return *rds, err
 }

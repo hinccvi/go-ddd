@@ -83,10 +83,7 @@ func (r resource) Query(c echo.Context) error {
 		Offset: offset,
 	}
 
-	ctx := c.Request().Context()
-	ctx = context.WithValue(ctx, ctxListUser, args)
-
-	list, err := r.service.Query(ctx)
+	list, err := r.service.Query(c.Request().Context(), args)
 	if err != nil {
 		return err
 	}
@@ -110,10 +107,7 @@ func (r resource) Create(c echo.Context) error {
 		Password: req.Password,
 	}
 
-	ctx := context.TODO()
-	ctx = context.WithValue(ctx, ctxCreateUser, args)
-
-	user, err := r.service.Create(ctx)
+	user, err := r.service.Create(context.TODO(), args)
 	if err != nil {
 		return err
 	}
@@ -138,10 +132,7 @@ func (r resource) Update(c echo.Context) error {
 		Password: req.Password,
 	}
 
-	ctx := context.TODO()
-	ctx = context.WithValue(ctx, ctxUpdateUser, args)
-
-	user, err := r.service.Update(ctx)
+	user, err := r.service.Update(context.TODO(), args)
 	if err != nil {
 		return err
 	}

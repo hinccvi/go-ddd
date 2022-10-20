@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-redis/redis/v9"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/test"
@@ -42,8 +42,16 @@ func TestAPI(t *testing.T) {
 
 	router := test.MockRouter(logger)
 
-	RegisterHandlers(router.Group(""), NewService(redis.Client{}, repo, logger), logger, authHandler)
-	header := test.MockAuthHeader()
+	s := miniredis.RunT(t)
+
+	rds, err := test.Redis(s.Addr())
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	RegisterHandlers(router.Group(""), NewService(rds, repo, logger), logger, authHandler)
+	header := test.MockAuthHeader(uuid.String(), "user")
 
 	tests := []test.APITestCase{
 		{
@@ -62,12 +70,10 @@ func TestAPI(t *testing.T) {
 			WantResponse: fmt.Sprintf(`*{"id":"%s","username":"user"}*`, uuid.String()),
 		},
 		{
-			Name:         "get unknown",
-			Method:       http.MethodGet,
-			URL:          "/v1/user/xxx",
-			Param:        "xxx",
-			WantStatus:   http.StatusBadRequest,
-			WantResponse: "",
+			Name:       "get unknown",
+			Method:     http.MethodGet,
+			URL:        "/v1/user/xxx",
+			WantStatus: http.StatusBadRequest,
 		},
 		{
 			Name:         "create ok",

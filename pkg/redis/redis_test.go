@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"context"
 	"flag"
 	"reflect"
 	"testing"
@@ -18,7 +19,7 @@ func TestConnect(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, reflect.DeepEqual(config.Config{}, cfg))
 
-	rds, err := Connect(cfg)
+	rds, err := Connect(context.TODO(), cfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, rds)
 }

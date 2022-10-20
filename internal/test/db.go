@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-func Connect(ctx context.Context, t *testing.T, cfg *config.Config) *pgxpool.Pool {
+func DB(t *testing.T, cfg *config.Config) *pgxpool.Pool {
 	config, err := pgxpool.ParseConfig(cfg.Dsn)
 	if err != nil {
 		t.Error(err)
@@ -20,7 +20,7 @@ func Connect(ctx context.Context, t *testing.T, cfg *config.Config) *pgxpool.Poo
 	logger, _ := log.NewForTest()
 	config.ConnConfig.Logger = zapadapter.NewLogger(logger)
 
-	pgx, err := pgxpool.ConnectConfig(ctx, config)
+	pgx, err := pgxpool.ConnectConfig(context.TODO(), config)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -29,10 +29,10 @@ func Connect(ctx context.Context, t *testing.T, cfg *config.Config) *pgxpool.Poo
 	return pgx
 }
 
-func Reset(ctx context.Context, t *testing.T, pgx *pgxpool.Pool) {
-	sql := "DROP TABLE test"
+func Reset(t *testing.T, pgx *pgxpool.Pool) {
+	sql := `TRUNCATE TABLE "user"`
 
-	_, err := pgx.Exec(ctx, sql)
+	_, err := pgx.Exec(context.TODO(), sql)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()

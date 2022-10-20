@@ -17,9 +17,9 @@ type (
 	// Service encapsulates usecase logic for user.
 	Service interface {
 		Get(ctx context.Context) (models.GetUserRow, error)
-		Query(ctx context.Context) (List, error)
-		Create(ctx context.Context) (models.CreateUserRow, error)
-		Update(ctx context.Context) (models.UpdateUserRow, error)
+		Query(ctx context.Context, args models.ListUserParams) (List, error)
+		Create(ctx context.Context, args models.CreateUserParams) (models.CreateUserRow, error)
+		Update(ctx context.Context, args models.UpdateUserParams) (models.UpdateUserRow, error)
 		Delete(ctx context.Context) (models.SoftDeleteUserRow, error)
 	}
 
@@ -67,12 +67,7 @@ func (s service) Get(ctx context.Context) (models.GetUserRow, error) {
 	return item, nil
 }
 
-func (s service) Query(ctx context.Context) (List, error) {
-	args, ok := ctx.Value(ctxListUser).(models.ListUserParams)
-	if !ok {
-		return List{}, constants.ErrSystemError
-	}
-
+func (s service) Query(ctx context.Context, args models.ListUserParams) (List, error) {
 	items, err := s.repo.Query(ctx, args)
 	if err != nil {
 		return List{}, err
@@ -90,12 +85,7 @@ func (s service) Count(ctx context.Context) (int64, error) {
 	return s.repo.Count(ctx)
 }
 
-func (s service) Create(ctx context.Context) (models.CreateUserRow, error) {
-	args, ok := ctx.Value(ctxCreateUser).(models.CreateUserParams)
-	if !ok {
-		return models.CreateUserRow{}, constants.ErrSystemError
-	}
-
+func (s service) Create(ctx context.Context, args models.CreateUserParams) (models.CreateUserRow, error) {
 	hashedPassword, err := tools.Bcrypt(args.Password, constants.BcryptCost)
 	if err != nil {
 		return models.CreateUserRow{}, err
@@ -111,12 +101,7 @@ func (s service) Create(ctx context.Context) (models.CreateUserRow, error) {
 	return item, nil
 }
 
-func (s service) Update(ctx context.Context) (models.UpdateUserRow, error) {
-	args, ok := ctx.Value(ctxUpdateUser).(models.UpdateUserParams)
-	if !ok {
-		return models.UpdateUserRow{}, constants.ErrSystemError
-	}
-
+func (s service) Update(ctx context.Context, args models.UpdateUserParams) (models.UpdateUserRow, error) {
 	if args.Password != "" {
 		hashedPassword, err := tools.Bcrypt(args.Password, constants.BcryptCost)
 		if err != nil {
