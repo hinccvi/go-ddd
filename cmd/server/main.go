@@ -103,7 +103,7 @@ func buildHandler(logger log.Logger, rds redis.Client, dbx models.DBTX, cfg *con
 	e.Validator = &m.CustomValidator{Validator: validator.New()}
 
 	authHandler := middleware.JWTWithConfig(middleware.JWTConfig{
-		Claims:     &auth.JwtCustomClaims{},
+		Claims:     &constants.JWTCustomClaims{},
 		SigningKey: []byte(cfg.Jwt.AccessSigningKey),
 	})
 

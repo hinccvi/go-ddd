@@ -32,15 +32,6 @@ type (
 		GetName() string
 	}
 
-	Data struct {
-		UserName string
-	}
-
-	JwtCustomClaims struct {
-		Data
-		jwt.RegisteredClaims
-	}
-
 	service struct {
 		cfg    *config.Config
 		rds    redis.Client
@@ -58,6 +49,8 @@ type (
 	refreshResponse struct {
 		RefreshToken string `json:"refresh_token"`
 	}
+
+	jwtCustomClaims constants.JWTCustomClaims
 )
 
 const (
@@ -139,7 +132,7 @@ func (s service) Refresh(ctx context.Context) (refreshResponse, error) {
 
 	user := models.GetByUsernameRow{
 		ID:       id,
-		Username: accessClaims.Data.UserName,
+		Username: accessClaims.JWTData.UserName,
 	}
 
 	accessToken, err := s.generateJWT(user, "")
@@ -182,9 +175,9 @@ func (s service) generateJWT(user models.GetByUsernameRow, jwtType string) (stri
 
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		JwtCustomClaims{
-			Data{user.Username},
-			jwt.RegisteredClaims{
+		constants.JWTCustomClaims{
+			JWTData: constants.JWTData{UserName: user.Username},
+			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    s.cfg.App.Name,
 				Subject:   user.ID.String(),
 				Audience:  jwt.ClaimStrings{"all"},
@@ -198,7 +191,7 @@ func (s service) generateJWT(user models.GetByUsernameRow, jwtType string) (stri
 	return token.SignedString(signingKey)
 }
 
-func (s service) parseRefreshToken(refreshToken string) (JwtCustomClaims, error) {
+func (s service) parseRefreshToken(refreshToken string) (jwtCustomClaims, error) {
 	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, constants.ErrInvalidJwt
@@ -208,18 +201,18 @@ func (s service) parseRefreshToken(refreshToken string) (JwtCustomClaims, error)
 	})
 
 	if token == nil {
-		return JwtCustomClaims{}, constants.ErrInvalidJwt
+		return jwtCustomClaims{}, constants.ErrInvalidJwt
 	}
 
-	if claims, ok := token.Claims.(JwtCustomClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(jwtCustomClaims); ok && token.Valid {
 		return claims, nil
 	}
 
-	return JwtCustomClaims{}, err
+	return jwtCustomClaims{}, err
 }
 
 // parseAccessToken extract value from validated token that failed on expired err.
-func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
+func (s service) parseAccessToken(accessToken string) (jwtCustomClaims, error) {
 	_, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, constants.ErrInvalidJwt
@@ -229,22 +222,22 @@ func (s service) parseAccessToken(accessToken string) (JwtCustomClaims, error) {
 	})
 
 	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
-		return JwtCustomClaims{}, err
+		return jwtCustomClaims{}, err
 	}
 
-	token, _, err := new(jwt.Parser).ParseUnverified(accessToken, &JwtCustomClaims{})
+	token, _, err := new(jwt.Parser).ParseUnverified(accessToken, &jwtCustomClaims{})
 	if err != nil {
-		return JwtCustomClaims{}, err
+		return jwtCustomClaims{}, err
 	}
 
-	claims, ok := token.Claims.(*JwtCustomClaims)
+	claims, ok := token.Claims.(*jwtCustomClaims)
 	if !ok {
-		return JwtCustomClaims{}, err
+		return jwtCustomClaims{}, err
 	}
 
 	// only allow access token to be refresh just before expire time
 	if time.Until(claims.ExpiresAt.Time) > constants.JWTRemainingTime {
-		return JwtCustomClaims{}, constants.ErrConditionNotFulfil
+		return jwtCustomClaims{}, constants.ErrConditionNotFulfil
 	}
 
 	return *claims, nil
