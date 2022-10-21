@@ -35,6 +35,7 @@ func Endpoint(t *testing.T, router *echo.Echo, tc APITestCase) {
 		}
 
 		router.ServeHTTP(res, req)
+		defer router.Close()
 
 		assert.Equal(t, tc.WantStatus, res.Code, "status mismatch")
 

@@ -27,6 +27,7 @@ var (
 		ErrResourceNotFound:    http.StatusBadRequest,
 		ErrInvalidRefreshToken: http.StatusForbidden,
 		ErrInvalidJwt:          http.StatusForbidden,
+		ErrCRUD:                http.StatusInternalServerError,
 		ErrSystemError:         http.StatusInternalServerError,
 
 		// Business logic error

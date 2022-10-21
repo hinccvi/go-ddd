@@ -9,6 +9,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/test"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
@@ -17,14 +18,14 @@ import (
 )
 
 func TestAPI(t *testing.T) {
-	uuid, err := tools.GenerateUUIDv4()
+	id, err := tools.GenerateUUIDv4()
 	for err != nil {
-		uuid, err = tools.GenerateUUIDv4()
+		id, err = tools.GenerateUUIDv4()
 	}
 
 	repo := &mockRepository{items: []models.User{
 		{
-			ID:        uuid,
+			ID:        id,
 			Username:  "user",
 			Password:  "secret",
 			CreatedAt: time.Now(),
@@ -51,7 +52,7 @@ func TestAPI(t *testing.T) {
 	}
 
 	RegisterHandlers(router.Group(""), NewService(rds, repo, logger), logger, authHandler)
-	header := test.MockAuthHeader(uuid.String(), "user")
+	header := test.MockAuthHeader(id.String(), "user")
 
 	tests := []test.APITestCase{
 		{
@@ -59,21 +60,21 @@ func TestAPI(t *testing.T) {
 			Method:       http.MethodGet,
 			URL:          "/v1/user/list",
 			WantStatus:   http.StatusOK,
-			WantResponse: fmt.Sprintf(`*{"list":[{"id":"%s","username":"user"}],"total":1}*`, uuid.String()),
+			WantResponse: fmt.Sprintf(`*{"list":[{"id":"%s","username":"user"}],"total":1}*`, id.String()),
 		},
 		{
 			Name:         "get init user",
 			Method:       http.MethodGet,
-			URL:          fmt.Sprintf("/v1/user/%s", uuid.String()),
-			Param:        uuid.String(),
+			URL:          fmt.Sprintf("/v1/user/%s", id.String()),
+			Param:        id.String(),
 			WantStatus:   http.StatusOK,
-			WantResponse: fmt.Sprintf(`*{"id":"%s","username":"user"}*`, uuid.String()),
+			WantResponse: fmt.Sprintf(`*{"id":"%s","username":"user"}*`, id.String()),
 		},
 		{
 			Name:       "get unknown",
 			Method:     http.MethodGet,
-			URL:        "/v1/user/xxx",
-			WantStatus: http.StatusBadRequest,
+			URL:        fmt.Sprintf("/v1/user/%s", uuid.UUID{}.String()),
+			WantStatus: http.StatusInternalServerError,
 		},
 		{
 			Name:         "create ok",
@@ -101,10 +102,18 @@ func TestAPI(t *testing.T) {
 			WantStatus: http.StatusBadRequest,
 		},
 		{
+			Name:       "create error",
+			Method:     http.MethodPost,
+			URL:        "/v1/user",
+			Body:       `{"username": "error","password": "secret"}`,
+			Header:     header,
+			WantStatus: http.StatusInternalServerError,
+		},
+		{
 			Name:         "update ok",
 			Method:       http.MethodPatch,
 			URL:          "/v1/user",
-			Body:         fmt.Sprintf(`{"id":"%s","username": "newuser","password": "newsecret"}`, uuid.String()),
+			Body:         fmt.Sprintf(`{"id":"%s","username": "newuser","password": "newsecret"}`, id.String()),
 			Header:       header,
 			WantStatus:   http.StatusOK,
 			WantResponse: `*"message":"updated"*`,
@@ -124,18 +133,25 @@ func TestAPI(t *testing.T) {
 			WantStatus: http.StatusBadRequest,
 		},
 		{
-			Name:         "update input error",
-			Method:       http.MethodPatch,
-			URL:          "/v1/user",
-			Body:         `"name":"albumxyz"}`,
-			Header:       header,
-			WantStatus:   http.StatusBadRequest,
-			WantResponse: "",
+			Name:       "update input error",
+			Method:     http.MethodPatch,
+			URL:        "/v1/user",
+			Body:       `"name":"albumxyz"}`,
+			Header:     header,
+			WantStatus: http.StatusBadRequest,
+		},
+		{
+			Name:       "update error",
+			Method:     http.MethodPatch,
+			URL:        "/v1/user",
+			Body:       fmt.Sprintf(`{"id":"%s","username": "error","password": "newsecret"}`, id.String()),
+			Header:     header,
+			WantStatus: http.StatusInternalServerError,
 		},
 		{
 			Name:         "delete ok",
 			Method:       http.MethodDelete,
-			URL:          fmt.Sprintf("/v1/user/%s", uuid.String()),
+			URL:          fmt.Sprintf("/v1/user/%s", id.String()),
 			Header:       header,
 			WantStatus:   http.StatusOK,
 			WantResponse: `*"message":"deleted"*`,
@@ -150,8 +166,15 @@ func TestAPI(t *testing.T) {
 		{
 			Name:       "delete auth error",
 			Method:     http.MethodDelete,
-			URL:        fmt.Sprintf("/v1/user/%s", uuid.String()),
+			URL:        fmt.Sprintf("/v1/user/%s", id.String()),
 			WantStatus: http.StatusBadRequest,
+		},
+		{
+			Name:       "delete error",
+			Method:     http.MethodDelete,
+			URL:        fmt.Sprintf("/v1/user/%s", uuid.UUID{}.String()),
+			Header:     header,
+			WantStatus: http.StatusInternalServerError,
 		},
 	}
 

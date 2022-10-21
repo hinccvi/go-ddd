@@ -16,11 +16,11 @@ import (
 type (
 	// Service encapsulates usecase logic for user.
 	Service interface {
-		Get(ctx context.Context) (models.GetUserRow, error)
+		Get(ctx context.Context, id uuid.UUID) (models.GetUserRow, error)
 		Query(ctx context.Context, args models.ListUserParams) (List, error)
 		Create(ctx context.Context, args models.CreateUserParams) (models.CreateUserRow, error)
 		Update(ctx context.Context, args models.UpdateUserParams) (models.UpdateUserRow, error)
-		Delete(ctx context.Context) (models.SoftDeleteUserRow, error)
+		Delete(ctx context.Context, id uuid.UUID) (models.SoftDeleteUserRow, error)
 	}
 
 	List struct {
@@ -33,15 +33,6 @@ type (
 		repo   Repository
 		logger log.Logger
 	}
-
-	key int
-)
-
-const (
-	ctxID key = iota
-	ctxListUser
-	ctxCreateUser
-	ctxUpdateUser
 )
 
 // NewService creates a new user service.
@@ -49,19 +40,13 @@ func NewService(rds redis.Client, repo Repository, logger log.Logger) Service {
 	return service{rds, repo, logger}
 }
 
-func (s service) Get(ctx context.Context) (models.GetUserRow, error) {
-	id, ok := ctx.Value(ctxID).(uuid.UUID)
-	if !ok {
-		return models.GetUserRow{}, constants.ErrSystemError
-	}
-
+func (s service) Get(ctx context.Context, id uuid.UUID) (models.GetUserRow, error) {
 	item, err := s.repo.Get(ctx, id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.GetUserRow{}, constants.ErrResourceNotFound
-		}
-
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
 		return models.GetUserRow{}, err
+	case err != nil:
+		return models.GetUserRow{}, constants.ErrResourceNotFound
 	}
 
 	return item, nil
@@ -119,12 +104,7 @@ func (s service) Update(ctx context.Context, args models.UpdateUserParams) (mode
 	return item, nil
 }
 
-func (s service) Delete(ctx context.Context) (models.SoftDeleteUserRow, error) {
-	id, ok := ctx.Value(ctxID).(uuid.UUID)
-	if !ok {
-		return models.SoftDeleteUserRow{}, constants.ErrSystemError
-	}
-
+func (s service) Delete(ctx context.Context, id uuid.UUID) (models.SoftDeleteUserRow, error) {
 	item, err := s.repo.Delete(ctx, id)
 	if err != nil {
 		return models.SoftDeleteUserRow{}, err

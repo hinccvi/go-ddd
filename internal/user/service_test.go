@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"database/sql"
+	"reflect"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,10 @@ type mockRepository struct {
 }
 
 func (m *mockRepository) Get(ctx context.Context, id uuid.UUID) (models.GetUserRow, error) {
+	if reflect.DeepEqual(id, uuid.UUID{}) {
+		return models.GetUserRow{}, pgx.ErrNoRows
+	}
+
 	for _, item := range m.items {
 		if item.ID == id {
 			u := models.GetUserRow{
@@ -106,6 +111,10 @@ func (m *mockRepository) Update(ctx context.Context, args models.UpdateUserParam
 }
 
 func (m *mockRepository) Delete(ctx context.Context, id uuid.UUID) (models.SoftDeleteUserRow, error) {
+	if reflect.DeepEqual(id, uuid.UUID{}) {
+		return models.SoftDeleteUserRow{}, constants.ErrCRUD
+	}
+
 	var row models.SoftDeleteUserRow
 
 	for i, item := range m.items {

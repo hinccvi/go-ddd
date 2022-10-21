@@ -43,10 +43,7 @@ func (r resource) Get(c echo.Context) error {
 		return err
 	}
 
-	ctx := c.Request().Context()
-	ctx = context.WithValue(ctx, ctxID, req.ID)
-
-	user, err := r.service.Get(ctx)
+	user, err := r.service.Get(c.Request().Context(), *req.ID)
 	if err != nil {
 		return err
 	}
@@ -151,10 +148,7 @@ func (r resource) Delete(c echo.Context) error {
 		return err
 	}
 
-	ctx := context.TODO()
-	ctx = context.WithValue(ctx, ctxID, req.ID)
-
-	user, err := r.service.Delete(ctx)
+	user, err := r.service.Delete(context.TODO(), *req.ID)
 	if err != nil {
 		return err
 	}
