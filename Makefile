@@ -87,7 +87,7 @@ db-stop: ## stop the database server
 .PHONY: redis-start
 redis-start: ## start the redis server
 	@mkdir -p $(shell pwd)/testdata/redis
-	@cp  $(shell pwd)/deployments/redis.conf $(shell pwd)/testdata/redis/redis.conf
+	@cp  $(shell pwd)/config/redis.conf $(shell pwd)/testdata/redis/redis.conf
 	docker run --rm --name redis \
 		-v $(shell pwd)/testdata/redis:/usr/local/etc/redis \
 		-d -p 6379:6379 redis redis-server /usr/local/etc/redis/redis.conf

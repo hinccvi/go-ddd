@@ -10,7 +10,7 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/test"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/uuid"
@@ -23,7 +23,7 @@ func TestAPI(t *testing.T) {
 		id, err = tools.GenerateUUIDv4()
 	}
 
-	repo := &mockRepository{items: []models.User{
+	repo := &mockRepository{items: []model.User{
 		{
 			ID:        id,
 			Username:  "user",

@@ -17,7 +17,7 @@ import (
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck"
 	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
@@ -93,7 +93,7 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(logger log.Logger, rds redis.Client, dbx models.DBTX, cfg *config.Config) *echo.Echo {
+func buildHandler(logger log.Logger, rds redis.Client, dbx model.DBTX, cfg *config.Config) *echo.Echo {
 	e := echo.New()
 
 	e.HTTPErrorHandler = m.NewHTTPErrorHandler(constants.ErrorStatusCodeMaps).Handler(logger)

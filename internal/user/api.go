@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/response"
 	"github.com/labstack/echo/v4"
@@ -75,7 +75,7 @@ func (r resource) Query(c echo.Context) error {
 		offset = *req.Offset
 	}
 
-	args := models.ListUserParams{
+	args := model.ListUserParams{
 		Limit:  limit,
 		Offset: offset,
 	}
@@ -99,7 +99,7 @@ func (r resource) Create(c echo.Context) error {
 		return err
 	}
 
-	args := models.CreateUserParams{
+	args := model.CreateUserParams{
 		Username: req.Username,
 		Password: req.Password,
 	}
@@ -123,7 +123,7 @@ func (r resource) Update(c echo.Context) error {
 		return err
 	}
 
-	args := models.UpdateUserParams{
+	args := model.UpdateUserParams{
 		ID:       req.ID,
 		Username: req.Username,
 		Password: req.Password,

@@ -11,7 +11,7 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/test"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	hTools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/hash"
@@ -35,7 +35,7 @@ func TestAPI(t *testing.T) {
 		t.FailNow()
 	}
 
-	repo := &mockRepository{items: []models.User{
+	repo := &mockRepository{items: []model.User{
 		{
 			ID:        id1,
 			Username:  "user",

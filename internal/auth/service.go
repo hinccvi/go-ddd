@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	hTools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/hash"
 )
@@ -130,7 +130,7 @@ func (s service) Refresh(ctx context.Context) (refreshResponse, error) {
 		return refreshResponse{}, err
 	}
 
-	user := models.GetByUsernameRow{
+	user := model.GetByUsernameRow{
 		ID:       id,
 		Username: accessClaims.JWTData.UserName,
 	}
@@ -145,25 +145,25 @@ func (s service) Refresh(ctx context.Context) (refreshResponse, error) {
 
 // authenticate authenticates a user using username and password.
 // If name and password are correct, an identity is returned. Otherwise, nil is returned.
-func (s service) authenticate(ctx context.Context, username, password string) (models.GetByUsernameRow, error) {
+func (s service) authenticate(ctx context.Context, username, password string) (model.GetByUsernameRow, error) {
 	user, err := s.repo.GetUserByUsername(ctx, username)
 	if err != nil {
-		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
+		return model.GetByUsernameRow{}, constants.ErrInvalidCredentials
 	}
 
 	if err = hTools.BcryptCompare(password, user.Password); err != nil {
 		if err = s.cacheIncorrectPassword(ctx, user.ID.String()); err != nil {
-			return models.GetByUsernameRow{}, err
+			return model.GetByUsernameRow{}, err
 		}
 
-		return models.GetByUsernameRow{}, constants.ErrInvalidCredentials
+		return model.GetByUsernameRow{}, constants.ErrInvalidCredentials
 	}
 
 	return user, nil
 }
 
 // generateJWT generates a JWT that encodes an identity.
-func (s service) generateJWT(user models.GetByUsernameRow, jwtType string) (string, error) {
+func (s service) generateJWT(user model.GetByUsernameRow, jwtType string) (string, error) {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(time.Duration(s.cfg.Jwt.AccessExpiration) * time.Minute)
 	signingKey := []byte(s.cfg.Jwt.AccessSigningKey)

@@ -8,23 +8,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/models"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
 	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/uuid"
 	"github.com/jackc/pgx/v4"
 )
 
 type mockRepository struct {
-	items []models.User
+	items []model.User
 }
 
-func (m *mockRepository) Get(ctx context.Context, id uuid.UUID) (models.GetUserRow, error) {
+func (m *mockRepository) Get(ctx context.Context, id uuid.UUID) (model.GetUserRow, error) {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
-		return models.GetUserRow{}, pgx.ErrNoRows
+		return model.GetUserRow{}, pgx.ErrNoRows
 	}
 
 	for _, item := range m.items {
 		if item.ID == id {
-			u := models.GetUserRow{
+			u := model.GetUserRow{
 				ID:       item.ID,
 				Username: item.Username,
 			}
@@ -33,17 +33,17 @@ func (m *mockRepository) Get(ctx context.Context, id uuid.UUID) (models.GetUserR
 		}
 	}
 
-	return models.GetUserRow{}, pgx.ErrNoRows
+	return model.GetUserRow{}, pgx.ErrNoRows
 }
 
 func (m *mockRepository) Count(ctx context.Context) (int64, error) {
 	return int64(len(m.items)), nil
 }
 
-func (m *mockRepository) Query(ctx context.Context, args models.ListUserParams) ([]models.ListUserRow, error) {
-	users := []models.ListUserRow{}
+func (m *mockRepository) Query(ctx context.Context, args model.ListUserParams) ([]model.ListUserRow, error) {
+	users := []model.ListUserRow{}
 	for _, v := range m.items {
-		users = append(users, models.ListUserRow{
+		users = append(users, model.ListUserRow{
 			ID:       v.ID,
 			Username: v.Username,
 		})
@@ -52,9 +52,9 @@ func (m *mockRepository) Query(ctx context.Context, args models.ListUserParams) 
 	return users, nil
 }
 
-func (m *mockRepository) Create(ctx context.Context, args models.CreateUserParams) (models.CreateUserRow, error) {
+func (m *mockRepository) Create(ctx context.Context, args model.CreateUserParams) (model.CreateUserRow, error) {
 	if args.Username == "error" {
-		return models.CreateUserRow{}, constants.ErrCRUD
+		return model.CreateUserRow{}, constants.ErrCRUD
 	}
 
 	id, err := tools.GenerateUUIDv4()
@@ -65,12 +65,12 @@ func (m *mockRepository) Create(ctx context.Context, args models.CreateUserParam
 	createdAt := time.Now()
 	updatedAt := time.Now()
 
-	row := models.CreateUserRow{
+	row := model.CreateUserRow{
 		ID:       id,
 		Username: args.Username,
 	}
 
-	m.items = append(m.items, models.User{
+	m.items = append(m.items, model.User{
 		ID:        id,
 		Username:  args.Username,
 		Password:  args.Password,
@@ -81,12 +81,12 @@ func (m *mockRepository) Create(ctx context.Context, args models.CreateUserParam
 	return row, nil
 }
 
-func (m *mockRepository) Update(ctx context.Context, args models.UpdateUserParams) (models.UpdateUserRow, error) {
+func (m *mockRepository) Update(ctx context.Context, args model.UpdateUserParams) (model.UpdateUserRow, error) {
 	if args.Username == "error" {
-		return models.UpdateUserRow{}, constants.ErrCRUD
+		return model.UpdateUserRow{}, constants.ErrCRUD
 	}
 
-	var row models.UpdateUserRow
+	var row model.UpdateUserRow
 
 	for i, item := range m.items {
 		if item.ID == args.ID {
@@ -110,12 +110,12 @@ func (m *mockRepository) Update(ctx context.Context, args models.UpdateUserParam
 	return row, nil
 }
 
-func (m *mockRepository) Delete(ctx context.Context, id uuid.UUID) (models.SoftDeleteUserRow, error) {
+func (m *mockRepository) Delete(ctx context.Context, id uuid.UUID) (model.SoftDeleteUserRow, error) {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
-		return models.SoftDeleteUserRow{}, constants.ErrCRUD
+		return model.SoftDeleteUserRow{}, constants.ErrCRUD
 	}
 
-	var row models.SoftDeleteUserRow
+	var row model.SoftDeleteUserRow
 
 	for i, item := range m.items {
 		if item.ID == id {
