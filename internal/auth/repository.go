@@ -3,29 +3,29 @@ package auth
 import (
 	"context"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 )
 
 type Repository interface {
-	GetUserByUsername(ctx context.Context, username string) (model.GetByUsernameRow, error)
+	GetUserByUsername(ctx context.Context, username string) (entity.GetByUsernameRow, error)
 }
 
 type repository struct {
-	db     model.DBTX
+	db     entity.DBTX
 	logger log.Logger
 }
 
-func NewRepository(db model.DBTX, logger log.Logger) Repository {
+func NewRepository(db entity.DBTX, logger log.Logger) Repository {
 	return repository{db, logger}
 }
 
-func (r repository) GetUserByUsername(ctx context.Context, username string) (model.GetByUsernameRow, error) {
-	queries := model.New(r.db)
+func (r repository) GetUserByUsername(ctx context.Context, username string) (entity.GetByUsernameRow, error) {
+	queries := entity.New(r.db)
 
 	user, err := queries.GetByUsername(ctx, username)
 	if err != nil {
-		return model.GetByUsernameRow{}, err
+		return entity.GetByUsernameRow{}, err
 	}
 
 	return user, nil

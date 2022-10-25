@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/test"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/hash"
@@ -32,7 +32,7 @@ func TestRepository(t *testing.T) {
 	assert.Nil(t, err)
 
 	// create
-	createdUser, err := repo.Create(ctx, model.CreateUserParams{
+	createdUser, err := repo.Create(ctx, entity.CreateUserParams{
 		Username: "user",
 		Password: "secret",
 	})
@@ -49,7 +49,7 @@ func TestRepository(t *testing.T) {
 	assert.Equal(t, pgx.ErrNoRows, err)
 
 	// update
-	updatedUser, err := repo.Update(ctx, model.UpdateUserParams{
+	updatedUser, err := repo.Update(ctx, entity.UpdateUserParams{
 		ID:       user.ID,
 		Username: "testuser",
 		Password: "newsecret",
@@ -59,7 +59,7 @@ func TestRepository(t *testing.T) {
 	assert.Equal(t, "testuser", user.Username)
 
 	// query
-	albums, err := repo.Query(ctx, model.ListUserParams{
+	albums, err := repo.Query(ctx, entity.ListUserParams{
 		Limit:  10,
 		Offset: 0,
 	})
@@ -78,7 +78,7 @@ func TestRepository(t *testing.T) {
 	hashedPassword, err := tools.Bcrypt("secret", constants.BcryptCost)
 	assert.Nil(t, err)
 
-	testUser, err := repo.Create(ctx, model.CreateUserParams{
+	testUser, err := repo.Create(ctx, entity.CreateUserParams{
 		Username: "testuser1",
 		Password: hashedPassword,
 	})

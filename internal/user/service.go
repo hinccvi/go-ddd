@@ -7,7 +7,7 @@ import (
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/hash"
 	"github.com/jackc/pgx/v4"
@@ -16,16 +16,16 @@ import (
 type (
 	// Service encapsulates usecase logic for user.
 	Service interface {
-		Get(ctx context.Context, id uuid.UUID) (model.GetUserRow, error)
-		Query(ctx context.Context, args model.ListUserParams) (List, error)
-		Create(ctx context.Context, args model.CreateUserParams) (model.CreateUserRow, error)
-		Update(ctx context.Context, args model.UpdateUserParams) (model.UpdateUserRow, error)
-		Delete(ctx context.Context, id uuid.UUID) (model.SoftDeleteUserRow, error)
+		Get(ctx context.Context, id uuid.UUID) (entity.GetUserRow, error)
+		Query(ctx context.Context, args entity.ListUserParams) (List, error)
+		Create(ctx context.Context, args entity.CreateUserParams) (entity.CreateUserRow, error)
+		Update(ctx context.Context, args entity.UpdateUserParams) (entity.UpdateUserRow, error)
+		Delete(ctx context.Context, id uuid.UUID) (entity.SoftDeleteUserRow, error)
 	}
 
 	List struct {
-		List  []model.ListUserRow `json:"list"`
-		Total int64               `json:"total"`
+		List  []entity.ListUserRow `json:"list"`
+		Total int64                `json:"total"`
 	}
 
 	service struct {
@@ -40,19 +40,19 @@ func NewService(rds redis.Client, repo Repository, logger log.Logger) Service {
 	return service{rds, repo, logger}
 }
 
-func (s service) Get(ctx context.Context, id uuid.UUID) (model.GetUserRow, error) {
+func (s service) Get(ctx context.Context, id uuid.UUID) (entity.GetUserRow, error) {
 	item, err := s.repo.Get(ctx, id)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		return model.GetUserRow{}, err
+		return entity.GetUserRow{}, err
 	case err != nil:
-		return model.GetUserRow{}, constants.ErrResourceNotFound
+		return entity.GetUserRow{}, constants.ErrResourceNotFound
 	}
 
 	return item, nil
 }
 
-func (s service) Query(ctx context.Context, args model.ListUserParams) (List, error) {
+func (s service) Query(ctx context.Context, args entity.ListUserParams) (List, error) {
 	items, err := s.repo.Query(ctx, args)
 	if err != nil {
 		return List{}, err
@@ -70,27 +70,27 @@ func (s service) Count(ctx context.Context) (int64, error) {
 	return s.repo.Count(ctx)
 }
 
-func (s service) Create(ctx context.Context, args model.CreateUserParams) (model.CreateUserRow, error) {
+func (s service) Create(ctx context.Context, args entity.CreateUserParams) (entity.CreateUserRow, error) {
 	hashedPassword, err := tools.Bcrypt(args.Password, constants.BcryptCost)
 	if err != nil {
-		return model.CreateUserRow{}, err
+		return entity.CreateUserRow{}, err
 	}
 
 	args.Password = hashedPassword
 
 	item, err := s.repo.Create(ctx, args)
 	if err != nil {
-		return model.CreateUserRow{}, err
+		return entity.CreateUserRow{}, err
 	}
 
 	return item, nil
 }
 
-func (s service) Update(ctx context.Context, args model.UpdateUserParams) (model.UpdateUserRow, error) {
+func (s service) Update(ctx context.Context, args entity.UpdateUserParams) (entity.UpdateUserRow, error) {
 	if args.Password != "" {
 		hashedPassword, err := tools.Bcrypt(args.Password, constants.BcryptCost)
 		if err != nil {
-			return model.UpdateUserRow{}, err
+			return entity.UpdateUserRow{}, err
 		}
 
 		args.Password = hashedPassword
@@ -98,16 +98,16 @@ func (s service) Update(ctx context.Context, args model.UpdateUserParams) (model
 
 	item, err := s.repo.Update(ctx, args)
 	if err != nil {
-		return model.UpdateUserRow{}, err
+		return entity.UpdateUserRow{}, err
 	}
 
 	return item, nil
 }
 
-func (s service) Delete(ctx context.Context, id uuid.UUID) (model.SoftDeleteUserRow, error) {
+func (s service) Delete(ctx context.Context, id uuid.UUID) (entity.SoftDeleteUserRow, error) {
 	item, err := s.repo.Delete(ctx, id)
 	if err != nil {
-		return model.SoftDeleteUserRow{}, err
+		return entity.SoftDeleteUserRow{}, err
 	}
 
 	return item, nil

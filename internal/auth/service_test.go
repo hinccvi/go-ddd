@@ -3,18 +3,18 @@ package auth
 import (
 	"context"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/model"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
 	"github.com/jackc/pgx/v4"
 )
 
 type mockRepository struct {
-	items []model.User
+	items []entity.User
 }
 
-func (m *mockRepository) GetUserByUsername(ctx context.Context, username string) (model.GetByUsernameRow, error) {
+func (m *mockRepository) GetUserByUsername(ctx context.Context, username string) (entity.GetByUsernameRow, error) {
 	for _, item := range m.items {
 		if item.Username == username {
-			u := model.GetByUsernameRow{
+			u := entity.GetByUsernameRow{
 				ID:       item.ID,
 				Username: item.Username,
 				Password: item.Password,
@@ -24,5 +24,5 @@ func (m *mockRepository) GetUserByUsername(ctx context.Context, username string)
 		}
 	}
 
-	return model.GetByUsernameRow{}, pgx.ErrNoRows
+	return entity.GetByUsernameRow{}, pgx.ErrNoRows
 }
