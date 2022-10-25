@@ -6,7 +6,7 @@ import (
 
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	tools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/response"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 	"github.com/labstack/echo/v4"
 )
 
@@ -88,7 +88,7 @@ func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			if c.Request().Method == http.MethodHead {
 				err = c.NoContent(he.Code)
 			} else {
-				err = tools.RespWithData(c, code, tools.Error, struct {
+				err = tools.JSONRespWithData(c, code, tools.Error, struct {
 					Error string `json:"error"`
 				}{message})
 			}

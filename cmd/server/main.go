@@ -12,17 +12,21 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v9"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth"
+	authController "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth/controller/http/v1"
+	authRepo "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth/repository"
+	authService "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth/service"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck"
+	hcController "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck/controller/http"
 	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user"
+	userController "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user/controller/http/v1"
+	userRepository "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user/repository"
+	userService "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user/service"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
 	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
 	rds "github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/redis"
-	uTools "github.com/hinccvi/Golang-Project-Structure-Conventional/tools/uuid"
+	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -109,20 +113,20 @@ func buildHandler(logger log.Logger, rds redis.Client, dbx entity.DBTX, cfg *con
 
 	defaultGroup := e.Group("")
 
-	healthcheck.RegisterHandlers(
+	hcController.RegisterHandlers(
 		defaultGroup,
 		Version,
 	)
 
-	auth.RegisterHandlers(
+	authController.RegisterHandlers(
 		defaultGroup,
-		auth.NewService(cfg, rds, auth.NewRepository(dbx, logger), logger),
+		authService.New(cfg, rds, authRepo.New(dbx, logger), logger),
 		logger,
 	)
 
-	user.RegisterHandlers(
+	userController.RegisterHandlers(
 		defaultGroup,
-		user.NewService(rds, user.NewRepository(dbx, logger), logger),
+		userService.New(rds, userRepository.New(dbx, logger), logger),
 		logger,
 		authHandler,
 	)
@@ -149,9 +153,9 @@ func buildMiddleware() []echo.MiddlewareFunc {
 
 		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 			Generator: func() string {
-				u, err := uTools.GenerateUUIDv4()
+				u, err := tools.GenerateUUIDv4()
 				for err != nil {
-					u, err = uTools.GenerateUUIDv4()
+					u, err = tools.GenerateUUIDv4()
 				}
 
 				return u.String()
