@@ -10,6 +10,10 @@ type Config struct {
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"app"`
 
+	Context struct {
+		Timeout int `mapstructure:"timeout"`
+	} `mapstructure:"context"`
+
 	Jwt struct {
 		AccessSigningKey  string `mapstructure:"access_signing_key"`
 		AccessExpiration  int    `mapstructure:"access_expiration"`

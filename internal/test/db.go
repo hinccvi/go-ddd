@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/go-ddd/internal/config"
+	"github.com/hinccvi/go-ddd/pkg/log"
 	"github.com/jackc/pgx/v4/log/zapadapter"
 	"github.com/jackc/pgx/v4/pgxpool"
 )

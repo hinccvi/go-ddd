@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user/service"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	"github.com/hinccvi/go-ddd/internal/entity"
+	"github.com/hinccvi/go-ddd/internal/user/service"
+	"github.com/hinccvi/go-ddd/pkg/log"
+	"github.com/hinccvi/go-ddd/tools"
 	"github.com/labstack/echo/v4"
 )
 
@@ -44,7 +44,7 @@ func (r resource) Get(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSONRespWithData(c, http.StatusOK, tools.Success, user)
+	return tools.JSON(c, http.StatusOK, tools.Success, user)
 }
 
 func (r resource) Query(c echo.Context) error {
@@ -73,7 +73,7 @@ func (r resource) Query(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSONRespWithData(c, http.StatusOK, tools.Success, list)
+	return tools.JSON(c, http.StatusOK, tools.Success, list)
 }
 
 func (r resource) Create(c echo.Context) error {
@@ -92,7 +92,7 @@ func (r resource) Create(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSONRespWithData(c, http.StatusOK, tools.Created, user)
+	return tools.JSON(c, http.StatusOK, tools.Created, user)
 }
 
 func (r resource) Update(c echo.Context) error {
@@ -112,7 +112,7 @@ func (r resource) Update(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSONRespWithData(c, http.StatusOK, tools.Updated, user)
+	return tools.JSON(c, http.StatusOK, tools.Updated, user)
 }
 
 func (r resource) Delete(c echo.Context) error {
@@ -126,5 +126,5 @@ func (r resource) Delete(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSONRespWithData(c, http.StatusOK, tools.Deleted, user)
+	return tools.JSON(c, http.StatusOK, tools.Deleted, user)
 }

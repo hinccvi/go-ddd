@@ -1,14 +1,8 @@
-package constants
+package errors
 
 import (
 	"errors"
 	"net/http"
-)
-
-const (
-	MsgSystemError    = "system error"
-	MsgBadRequest     = "invalid input"
-	MsgRequestTimeout = "request timeout"
 )
 
 var (
@@ -20,17 +14,21 @@ var (
 	ErrResourceNotFound    = errors.New("resource not found")
 	ErrCRUD                = errors.New("error crud")
 	ErrSystemError         = errors.New("system error")
+)
 
-	ErrorStatusCodeMaps = map[error]int{
-		ErrInvalidCredentials:  http.StatusBadRequest,
-		ErrConditionNotFulfil:  http.StatusBadRequest,
-		ErrResourceNotFound:    http.StatusBadRequest,
+func GetStatusCodeMap() map[error]int {
+	return map[error]int{
+		ErrInvalidCredentials: http.StatusBadRequest,
+		ErrConditionNotFulfil: http.StatusBadRequest,
+		ErrResourceNotFound:   http.StatusBadRequest,
+
 		ErrInvalidRefreshToken: http.StatusForbidden,
 		ErrInvalidJwt:          http.StatusForbidden,
-		ErrCRUD:                http.StatusInternalServerError,
-		ErrSystemError:         http.StatusInternalServerError,
+
+		ErrCRUD:        http.StatusInternalServerError,
+		ErrSystemError: http.StatusInternalServerError,
 
 		// Business logic error
 		ErrMaxAttempt: http.StatusBadRequest,
 	}
-)
+}

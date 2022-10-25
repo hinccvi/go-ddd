@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/test"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/go-ddd/internal/test"
+	"github.com/hinccvi/go-ddd/pkg/log"
 )
 
 func TestAPI(t *testing.T) {

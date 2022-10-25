@@ -17,7 +17,7 @@ func TestResp_WithOk(t *testing.T) {
 	c := e.NewContext(req, rec)
 	okJSON := `{"code":200,"message":"success","data":null}`
 
-	if assert.NoError(t, JSONResp(c, http.StatusOK, Success)) {
+	if assert.NoError(t, JSON(c, http.StatusOK, Success, nil)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -30,7 +30,7 @@ func TestResp_WithCustomMessage(t *testing.T) {
 	c := e.NewContext(req, rec)
 	okJSON := `{"code":200,"message":"test","data":null}`
 
-	if assert.NoError(t, JSONResp(c, http.StatusOK, "test")) {
+	if assert.NoError(t, JSON(c, http.StatusOK, "test", nil)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -43,7 +43,7 @@ func TestResp_WithBadRequest(t *testing.T) {
 	c := e.NewContext(req, rec)
 	okJSON := `{"code":400,"message":"error","data":null}`
 
-	if assert.NoError(t, JSONResp(c, http.StatusBadRequest, Error)) {
+	if assert.NoError(t, JSON(c, http.StatusBadRequest, Error, nil)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -56,7 +56,7 @@ func TestResp_WithCustomError(t *testing.T) {
 	c := e.NewContext(req, rec)
 	okJSON := `{"code":1000,"message":"error","data":null}`
 
-	if assert.NoError(t, JSONResp(c, 1000, Error)) {
+	if assert.NoError(t, JSON(c, 1000, Error, nil)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -69,7 +69,7 @@ func TestRespWithData_OkString(t *testing.T) {
 	c := e.NewContext(req, rec)
 	okJSON := `{"code":200,"message":"test","data":"string"}`
 
-	if assert.NoError(t, JSONRespWithData(c, http.StatusOK, "test", "string")) {
+	if assert.NoError(t, JSON(c, http.StatusOK, "test", "string")) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -82,7 +82,7 @@ func TestRespWithData_OkInt(t *testing.T) {
 	c := e.NewContext(req, rec)
 	okJSON := `{"code":200,"message":"test","data":1}`
 
-	if assert.NoError(t, JSONRespWithData(c, http.StatusOK, "test", 1)) {
+	if assert.NoError(t, JSON(c, http.StatusOK, "test", 1)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -95,7 +95,7 @@ func TestRespWithData_OkFloat(t *testing.T) {
 	c := e.NewContext(req, rec)
 	okJSON := `{"code":200,"message":"test","data":1.1}`
 
-	if assert.NoError(t, JSONRespWithData(c, http.StatusOK, "test", 1.1)) {
+	if assert.NoError(t, JSON(c, http.StatusOK, "test", 1.1)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -120,7 +120,7 @@ func TestRespWithData_OkStruct(t *testing.T) {
 
 	okJSON := `{"code":200,"message":"test","data":` + string(b) + `}`
 
-	if assert.NoError(t, JSONRespWithData(c, http.StatusOK, "test", data)) {
+	if assert.NoError(t, JSON(c, http.StatusOK, "test", data)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}
@@ -143,7 +143,7 @@ func TestRespWithData_CustomErrorStruct(t *testing.T) {
 
 	okJSON := `{"code":1000,"message":"test","data":` + string(b) + `}`
 
-	if assert.NoError(t, JSONRespWithData(c, 1000, "test", data)) {
+	if assert.NoError(t, JSON(c, 1000, "test", data)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		assert.JSONEq(t, okJSON, rec.Body.String())
 	}

@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
+	"github.com/hinccvi/go-ddd/internal/config"
+	"github.com/hinccvi/go-ddd/internal/entity"
 	"github.com/jackc/pgx/v4/log/zapadapter"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.uber.org/zap"

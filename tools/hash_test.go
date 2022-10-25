@@ -3,27 +3,8 @@ package tools
 import (
 	"testing"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestBcrypt_WhenFail(t *testing.T) {
-	tests := []struct {
-		plainText string
-		cost      int
-	}{
-		{plainText: "secret", cost: 50},
-		{plainText: "MyNumberIs1995", cost: 100},
-		{plainText: "specialSymbols!@#", cost: 200},
-		{plainText: "hello world", cost: 200},
-	}
-
-	for _, test := range tests {
-		cypherText, err := Bcrypt(test.plainText, test.cost)
-		assert.NotNil(t, err)
-		assert.Empty(t, cypherText)
-	}
-}
 
 func TestBcryptCompare_WhenFail(t *testing.T) {
 	tests := []struct {
@@ -51,7 +32,7 @@ func TestBcrypt_WhenSuccess(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		cypherText, err := Bcrypt(test.plainText, constants.BcryptCost)
+		cypherText, err := Bcrypt(test.plainText)
 		assert.Equal(t, test.err, err)
 		assert.NotEmpty(t, cypherText)
 	}
@@ -68,7 +49,7 @@ func TestBcryptCompare_WhenSuccess(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		cypherText, err := Bcrypt(test.plainText, constants.BcryptCost)
+		cypherText, err := Bcrypt(test.plainText)
 		if assert.NoError(t, err) {
 			assert.Nil(t, BcryptCompare(test.plainText, cypherText))
 			assert.NotEmpty(t, cypherText)

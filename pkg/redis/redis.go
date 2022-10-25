@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis/v9"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
+	"github.com/hinccvi/go-ddd/internal/config"
 )
 
 func Connect(ctx context.Context, cfg config.Config) (redis.Client, error) {

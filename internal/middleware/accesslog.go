@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/go-ddd/pkg/log"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

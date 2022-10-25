@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/go-ddd/internal/entity"
+	"github.com/hinccvi/go-ddd/pkg/log"
 )
 
 // Repository encapsulates the logic to access users from the data source.

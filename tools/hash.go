@@ -4,8 +4,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Bcrypt(password string, cost int) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), cost)
+const (
+	// 12 bcrypt cost produce around ~300ms delay,
+	// and this is the max delay that average users can tolerate.
+	bcryptCost = bcrypt.DefaultCost + 2
+)
+
+func Bcrypt(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
 		return "", err
 	}

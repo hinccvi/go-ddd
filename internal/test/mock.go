@@ -8,10 +8,10 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/go-ddd/pkg/log"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
+	errs "github.com/hinccvi/go-ddd/internal/errors"
+	m "github.com/hinccvi/go-ddd/internal/middleware"
 	"github.com/labstack/echo/v4"
 )
 
@@ -30,7 +30,7 @@ type (
 func MockRouter(logger log.Logger) *echo.Echo {
 	e := echo.New()
 
-	e.HTTPErrorHandler = m.NewHTTPErrorHandler(constants.ErrorStatusCodeMaps).Handler(logger)
+	e.HTTPErrorHandler = m.NewHTTPErrorHandler(errs.GetStatusCodeMap()).Handler(logger)
 
 	e.Validator = &m.CustomValidator{Validator: validator.New()}
 

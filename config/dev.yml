@@ -2,6 +2,9 @@ app:
   name: sample-app.com
   port: 8022
 
+context:
+  timeout: 2
+
 jwt:
   access_signing_key: E4IiEcW02N4N2HKWnUjA6KxwrrrJME4SrO2FHDN0CDhHUfqjDmIiAlIoXMnG9brY
   access_expiration: 5

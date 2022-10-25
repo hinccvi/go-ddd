@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth/service"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	"github.com/hinccvi/go-ddd/internal/auth/service"
+	errs "github.com/hinccvi/go-ddd/internal/errors"
+	"github.com/hinccvi/go-ddd/pkg/log"
+	"github.com/hinccvi/go-ddd/tools"
 	"github.com/labstack/echo/v4"
 )
 
@@ -41,7 +41,7 @@ func (r resource) login(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSONRespWithData(c, http.StatusOK, tools.Success, res)
+	return tools.JSON(c, http.StatusOK, tools.Success, res)
 }
 
 func (r resource) refresh(c echo.Context) error {
@@ -54,8 +54,8 @@ func (r resource) refresh(c echo.Context) error {
 	accessTokenArr := strings.Split(tokenString, " ")
 	req.AccessToken = accessTokenArr[1]
 
-	if len(accessTokenArr) != constants.JWTpart {
-		return constants.ErrInvalidJwt
+	if len(accessTokenArr) != service.JWTBearerFormat {
+		return errs.ErrInvalidJwt
 	}
 
 	ctx := c.Request().Context()
@@ -64,5 +64,5 @@ func (r resource) refresh(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSONRespWithData(c, http.StatusOK, tools.Success, res)
+	return tools.JSON(c, http.StatusOK, tools.Success, &res)
 }

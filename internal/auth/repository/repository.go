@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
+	"github.com/hinccvi/go-ddd/internal/entity"
+	"github.com/hinccvi/go-ddd/pkg/log"
 )
 
 type Repository interface {

@@ -1,4 +1,4 @@
-module github.com/hinccvi/Golang-Project-Structure-Conventional
+module github.com/hinccvi/go-ddd
 
 go 1.18
 

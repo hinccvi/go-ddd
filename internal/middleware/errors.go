@@ -4,9 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	"github.com/hinccvi/go-ddd/pkg/log"
+	"github.com/hinccvi/go-ddd/tools"
 	"github.com/labstack/echo/v4"
 )
 
@@ -20,21 +19,21 @@ func NewHTTPErrorHandler(errorStatusCodeMaps map[error]int) *HTTPErrorHandler {
 	}
 }
 
-// func unwrapRecursive(err error) error {
-// 	var originalErr = err
+func unwrapRecursive(err error) error {
+	var originalErr = err
 
-// 	for originalErr != nil {
-// 		var internalErr = errors.Unwrap(originalErr)
+	for originalErr != nil {
+		var internalErr = errors.Unwrap(originalErr)
 
-// 		if internalErr == nil {
-// 			break
-// 		}
+		if internalErr == nil {
+			break
+		}
 
-// 		originalErr = internalErr
-// 	}
+		originalErr = internalErr
+	}
 
-// 	return originalErr
-// }
+	return originalErr
+}
 
 func (eh *HTTPErrorHandler) GetStatusCode(err error) int {
 	for key, value := range eh.statusCodes {
@@ -52,15 +51,15 @@ func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 		var he *echo.HTTPError
 		if errors.As(err, &he) {
 			if he.Internal != nil {
-				var herr *echo.HTTPError
-				if errors.As(he.Internal, &herr) {
-					he = herr
+				var ie *echo.HTTPError
+				if errors.As(unwrapRecursive(he.Internal), &ie) {
+					he = ie
 				}
 			}
 		} else {
 			he = &echo.HTTPError{
 				Code:     eh.GetStatusCode(err),
-				Message:  constants.MsgSystemError,
+				Message:  "internal server error",
 				Internal: err,
 			}
 		}
@@ -69,14 +68,10 @@ func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 		code := he.Code
 		message := ""
 
-		if he.Internal != nil {
-			message = he.Internal.Error()
+		if msg, ok := he.Message.(string); ok {
+			message = msg
 		} else {
-			if msg, ok := he.Message.(string); ok {
-				message = msg
-			} else {
-				message = constants.MsgBadRequest
-			}
+			message = "invalid input"
 		}
 
 		if code == http.StatusInternalServerError {
@@ -88,7 +83,7 @@ func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			if c.Request().Method == http.MethodHead {
 				err = c.NoContent(he.Code)
 			} else {
-				err = tools.JSONRespWithData(c, code, tools.Error, struct {
+				err = tools.JSON(c, code, tools.Error, struct {
 					Error string `json:"error"`
 				}{message})
 			}

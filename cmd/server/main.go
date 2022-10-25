@@ -9,24 +9,25 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v9"
-	authController "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth/controller/http/v1"
-	authRepo "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth/repository"
-	authService "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/auth/service"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/constants"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/entity"
-	hcController "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/healthcheck/controller/http"
-	m "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/middleware"
-	userController "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user/controller/http/v1"
-	userRepository "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user/repository"
-	userService "github.com/hinccvi/Golang-Project-Structure-Conventional/internal/user/service"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/db"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/log"
-	rds "github.com/hinccvi/Golang-Project-Structure-Conventional/pkg/redis"
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/tools"
+	authController "github.com/hinccvi/go-ddd/internal/auth/controller/http/v1"
+	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
+	authService "github.com/hinccvi/go-ddd/internal/auth/service"
+	"github.com/hinccvi/go-ddd/internal/config"
+	"github.com/hinccvi/go-ddd/internal/entity"
+	errs "github.com/hinccvi/go-ddd/internal/errors"
+	hcController "github.com/hinccvi/go-ddd/internal/healthcheck/controller/http"
+	m "github.com/hinccvi/go-ddd/internal/middleware"
+	userController "github.com/hinccvi/go-ddd/internal/user/controller/http/v1"
+	userRepository "github.com/hinccvi/go-ddd/internal/user/repository"
+	userService "github.com/hinccvi/go-ddd/internal/user/service"
+	"github.com/hinccvi/go-ddd/pkg/db"
+	"github.com/hinccvi/go-ddd/pkg/log"
+	rds "github.com/hinccvi/go-ddd/pkg/redis"
+	"github.com/hinccvi/go-ddd/tools"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -37,6 +38,11 @@ var (
 
 	//nolint:gochecknoglobals // environment flag that only used in main
 	flagEnv = flag.String("env", "local", "environment")
+)
+
+const (
+	gracefulTimeout   = 10 * time.Second
+	readHeaderTimeout = 2 * time.Second
 )
 
 func main() {
@@ -69,7 +75,7 @@ func main() {
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.App.Port),
 		Handler:           buildHandler(logger, rds, dbx, &cfg),
-		ReadHeaderTimeout: constants.RequestTimeout,
+		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
 	logger.Infof("Server listening on %s", server.Addr)
@@ -86,7 +92,7 @@ func main() {
 
 	logger.Info("Server shutting down")
 
-	ctx, cancel := context.WithTimeout(ctx, constants.ContextTimeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, gracefulTimeout)
 	defer cancel()
 
 	if err = server.Shutdown(ctx); err != nil {
@@ -98,16 +104,15 @@ func main() {
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
 func buildHandler(logger log.Logger, rds redis.Client, dbx entity.DBTX, cfg *config.Config) *echo.Echo {
+	t := time.Duration(cfg.Context.Timeout) * time.Second
+
 	e := echo.New()
-
-	e.HTTPErrorHandler = m.NewHTTPErrorHandler(constants.ErrorStatusCodeMaps).Handler(logger)
-
+	e.HTTPErrorHandler = m.NewHTTPErrorHandler(errs.GetStatusCodeMap()).Handler(logger)
+	e.Validator = &m.CustomValidator{Validator: validator.New()}
 	e.Use(buildMiddleware()...)
 
-	e.Validator = &m.CustomValidator{Validator: validator.New()}
-
 	authHandler := middleware.JWTWithConfig(middleware.JWTConfig{
-		Claims:     &constants.JWTCustomClaims{},
+		Claims:     &authService.JWTCustomClaims{},
 		SigningKey: []byte(cfg.Jwt.AccessSigningKey),
 	})
 
@@ -120,13 +125,13 @@ func buildHandler(logger log.Logger, rds redis.Client, dbx entity.DBTX, cfg *con
 
 	authController.RegisterHandlers(
 		defaultGroup,
-		authService.New(cfg, rds, authRepo.New(dbx, logger), logger),
+		authService.New(cfg, rds, authRepo.New(dbx, logger), logger, t),
 		logger,
 	)
 
 	userController.RegisterHandlers(
 		defaultGroup,
-		userService.New(rds, userRepository.New(dbx, logger), logger),
+		userService.New(rds, userRepository.New(dbx, logger), logger, t),
 		logger,
 		authHandler,
 	)
@@ -145,11 +150,6 @@ func buildMiddleware() []echo.MiddlewareFunc {
 		middleware.Recover(),
 
 		middleware.Secure(),
-
-		middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-			Timeout:      constants.RequestTimeout,
-			ErrorMessage: constants.MsgRequestTimeout,
-		}),
 
 		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 			Generator: func() string {

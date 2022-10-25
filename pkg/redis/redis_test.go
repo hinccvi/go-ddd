@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hinccvi/Golang-Project-Structure-Conventional/internal/config"
+	"github.com/hinccvi/go-ddd/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
