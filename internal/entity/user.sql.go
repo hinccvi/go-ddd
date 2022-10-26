@@ -16,7 +16,7 @@ SELECT COUNT(id) FROM "user"
 `
 
 func (q *Queries) CountUser(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countUser)
+	row := q.queryRow(ctx, q.countUserStmt, countUser)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -37,7 +37,7 @@ type CreateUserRow struct {
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Password)
+	row := q.queryRow(ctx, q.createUserStmt, createUser, arg.Username, arg.Password)
 	var i CreateUserRow
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err
@@ -48,7 +48,7 @@ DELETE FROM "user" WHERE id = $1
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUser, id)
+	_, err := q.exec(ctx, q.deleteUserStmt, deleteUser, id)
 	return err
 }
 
@@ -63,7 +63,7 @@ type GetByUsernameRow struct {
 }
 
 func (q *Queries) GetByUsername(ctx context.Context, username string) (GetByUsernameRow, error) {
-	row := q.db.QueryRow(ctx, getByUsername, username)
+	row := q.queryRow(ctx, q.getByUsernameStmt, getByUsername, username)
 	var i GetByUsernameRow
 	err := row.Scan(&i.ID, &i.Username, &i.Password)
 	return i, err
@@ -79,7 +79,7 @@ type GetUserRow struct {
 }
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
+	row := q.queryRow(ctx, q.getUserStmt, getUser, id)
 	var i GetUserRow
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err
@@ -100,7 +100,7 @@ type ListUserRow struct {
 }
 
 func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]ListUserRow, error) {
-	rows, err := q.db.Query(ctx, listUser, arg.Limit, arg.Offset)
+	rows, err := q.query(ctx, q.listUserStmt, listUser, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +112,9 @@ func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]ListUserR
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -129,7 +132,7 @@ type SoftDeleteUserRow struct {
 }
 
 func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) (SoftDeleteUserRow, error) {
-	row := q.db.QueryRow(ctx, softDeleteUser, id)
+	row := q.queryRow(ctx, q.softDeleteUserStmt, softDeleteUser, id)
 	var i SoftDeleteUserRow
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err
@@ -161,7 +164,7 @@ type UpdateUserRow struct {
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
-	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Username, arg.Password)
+	row := q.queryRow(ctx, q.updateUserStmt, updateUser, arg.ID, arg.Username, arg.Password)
 	var i UpdateUserRow
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err

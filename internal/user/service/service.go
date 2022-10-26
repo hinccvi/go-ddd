@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/hinccvi/go-ddd/internal/user/repository"
 	"github.com/hinccvi/go-ddd/pkg/log"
 	"github.com/hinccvi/go-ddd/tools"
-	"github.com/jackc/pgx/v4"
 )
 
 type (
@@ -74,7 +74,7 @@ func (s service) Get(ctx context.Context, id uuid.UUID) (entity.GetUserRow, erro
 
 	item, err := s.repo.Get(ctx, id)
 	switch {
-	case errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, sql.ErrNoRows):
 		return entity.GetUserRow{}, errs.ErrResourceNotFound
 	case err != nil:
 		return entity.GetUserRow{}, fmt.Errorf("[Get] internal error: %w", err)

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"flag"
 	"reflect"
 	"testing"
@@ -22,7 +23,7 @@ func TestConnect(t *testing.T) {
 
 	zap := log.New(*flagMode, log.AccessLog)
 
-	db, err := Connect(&cfg, zap)
+	db, err := Connect(context.TODO(), &cfg, zap)
 	assert.Nil(t, err)
 	assert.NotNil(t, db)
 }
@@ -30,7 +31,7 @@ func TestConnect(t *testing.T) {
 func TestConnect_WhenConfigIsEmpty(t *testing.T) {
 	zap := log.New(*flagMode, log.AccessLog)
 
-	db, err := Connect(&config.Config{}, zap)
+	db, err := Connect(context.TODO(), &config.Config{}, zap)
 	assert.NotNil(t, err)
 	assert.Nil(t, db)
 }
@@ -44,7 +45,7 @@ func TestConnect_WhenInvalidDSN(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, reflect.DeepEqual(cfg, zap))
 
-	db, err := Connect(&cfg, zap)
+	db, err := Connect(context.TODO(), &cfg, zap)
 	assert.NotNil(t, err)
 	assert.Nil(t, db)
 }

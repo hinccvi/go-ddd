@@ -61,7 +61,7 @@ func main() {
 	}
 
 	// connect to database
-	dbx, err := db.Connect(&cfg, log.New(*flagEnv, log.SQLLog))
+	dbx, err := db.Connect(ctx, &cfg, log.New(*flagEnv, log.SQLLog))
 	if err != nil {
 		logger.Fatal(err)
 	}

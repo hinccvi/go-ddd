@@ -11,7 +11,7 @@ var (
 	ErrConditionNotFulfil  = errors.New("condition not fulfil")
 	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 	ErrInvalidJwt          = errors.New("invalid token")
-	ErrResourceNotFound    = errors.New("resource not found")
+	ErrResourceNotFound    = errors.New("resource fail: not found")
 	ErrCRUD                = errors.New("error crud")
 	ErrSystemError         = errors.New("system error")
 )

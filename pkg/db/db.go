@@ -2,26 +2,39 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/hinccvi/go-ddd/internal/config"
-	"github.com/hinccvi/go-ddd/internal/entity"
-	"github.com/jackc/pgx/v4/log/zapadapter"
-	"github.com/jackc/pgx/v4/pgxpool"
+	// postgres driver required by database/sql.
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
 
-func Connect(cfg *config.Config, log *zap.Logger) (entity.DBTX, error) {
-	config, err := pgxpool.ParseConfig(cfg.Dsn)
+const (
+	maxOpenConns   int           = 25
+	maxIdleConns   int           = 25
+	maxLifetime    time.Duration = 5 * time.Minute
+	contextTimeout time.Duration = 5 * time.Second
+)
+
+func Connect(ctx context.Context, cfg *config.Config, log *zap.Logger) (*sql.DB, error) {
+	db, err := sql.Open("pgx", cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	config.ConnConfig.Logger = zapadapter.NewLogger(log)
+	db.SetMaxOpenConns(maxOpenConns)
+	db.SetMaxIdleConns(maxIdleConns)
+	db.SetConnMaxLifetime(maxLifetime)
 
-	pgx, err := pgxpool.ConnectConfig(context.TODO(), config)
+	ctx, cancel := context.WithTimeout(ctx, contextTimeout)
+	defer cancel()
+
+	err = db.PingContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return pgx, nil
+	return db, nil
 }
