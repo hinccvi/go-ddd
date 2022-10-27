@@ -51,6 +51,10 @@ func (r resource) refresh(c echo.Context) error {
 	}
 
 	tokenString := c.Request().Header.Get("Authorization")
+	if tokenString == "" {
+		return errs.ErrInvalidJwt
+	}
+
 	accessTokenArr := strings.Split(tokenString, " ")
 	req.AccessToken = accessTokenArr[1]
 

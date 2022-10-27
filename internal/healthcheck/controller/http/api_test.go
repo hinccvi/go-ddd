@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hinccvi/go-ddd/internal/mocks"
 	"github.com/hinccvi/go-ddd/internal/test"
 	"github.com/hinccvi/go-ddd/pkg/log"
 )
@@ -12,7 +13,7 @@ func TestAPI(t *testing.T) {
 	l, _ := log.NewForTest()
 	logger := log.NewWithZap(l)
 
-	router := test.MockRouter(logger)
+	router := mocks.Router(logger)
 
 	RegisterHandlers(router.Group(""), "test")
 

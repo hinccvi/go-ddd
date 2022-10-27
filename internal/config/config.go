@@ -39,6 +39,7 @@ func Load(env string) (Config, error) {
 	viper.SetConfigType("yml")
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath("../../config")
+	viper.AddConfigPath("../../../config")
 
 	conf := new(Config)
 

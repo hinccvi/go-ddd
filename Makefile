@@ -1,12 +1,13 @@
 MODULE = $(shell go list -m)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "1.0.0")
-PACKAGES := $(shell go list ./... | grep -v -e server -e test -e middleware -e entity -e constants | sort -r )
+PACKAGES := $(shell go list ./... | grep -v -e server -e test -e middleware -e entity -e constants -e mocks -e errors | sort -r )
 LDFLAGS := -ldflags "-X main.Version=${VERSION}"
 
 CONFIG_FILE ?= ./config/local.yml
 APP_DSN ?= $(shell sed -n 's/^dsn:[[:space:]]*"\(.*\)"/\1/p' $(CONFIG_FILE))
 MIGRATE := migrate -path migrations -database "$(APP_DSN)"
 DOCKER_REPOSITORY := hinccvi/server
+MOCKERY := mockery --name=Repository -r --output=./internal/mocks
 
 PID_FILE := './.pid'
 FSWATCH_FILE := './fswatch.cfg'
@@ -148,3 +149,9 @@ migrate-reset: ## reset database and re-run all migrations
 	@$(MIGRATE) drop
 	@echo "Running all database migrations..."
 	@$(MIGRATE) up
+
+.PHONY: mockery
+mockery: ## mock code autogenerator 
+	@read -p "Enter the repository name: " repo; \
+	struct_name="$$(tr '[:lower:]' '[:upper:]' <<< $${repo:0:1})$${repo:1}"; \
+	$(MOCKERY) --dir=./internal/$${repo// /_}/repository/ --filename=$${repo// /_}Repository.go --structname=$${struct_name}Repository

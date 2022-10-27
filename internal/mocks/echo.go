@@ -1,4 +1,4 @@
-package test
+package mocks
 
 import (
 	"fmt"
@@ -16,18 +16,14 @@ import (
 )
 
 type (
-	data struct {
-		UserName string
-	}
-
 	jwtCustomClaims struct {
-		data
+		UserName string `json:"username"`
 		jwt.RegisteredClaims
 	}
 )
 
-// MockRouter creates a echo router for testing APIs.
-func MockRouter(logger log.Logger) *echo.Echo {
+// Router creates a echo router for testing APIs.
+func Router(logger log.Logger) *echo.Echo {
 	e := echo.New()
 
 	e.HTTPErrorHandler = m.NewHTTPErrorHandler(errs.GetStatusCodeMap()).Handler(logger)
@@ -37,8 +33,8 @@ func MockRouter(logger log.Logger) *echo.Echo {
 	return e
 }
 
-// MockAuthHeader returns an HTTP header that can pass the authentication check by MockAuthHandler.
-func MockAuthHeader(id, username string) http.Header {
+// AuthHeader returns an HTTP header that can pass the authentication check by MockAuthHandler.
+func AuthHeader(id, username string) http.Header {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(1 * time.Minute)
 	signingKey := []byte("secret")
@@ -46,8 +42,8 @@ func MockAuthHeader(id, username string) http.Header {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwtCustomClaims{
-			data: data{UserName: username},
-			RegisteredClaims: jwt.RegisteredClaims{
+			username,
+			jwt.RegisteredClaims{
 				Issuer:    "test",
 				Subject:   id,
 				Audience:  jwt.ClaimStrings{"all"},
@@ -65,7 +61,7 @@ func MockAuthHeader(id, username string) http.Header {
 	return header
 }
 
-func MockRefreshToken(id, username string) string {
+func Token(id, username string) string {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(1 * time.Minute)
 	signingKey := []byte("secret")
@@ -73,7 +69,7 @@ func MockRefreshToken(id, username string) string {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwtCustomClaims{
-			data{UserName: username},
+			username,
 			jwt.RegisteredClaims{
 				Issuer:    "test",
 				Subject:   id,

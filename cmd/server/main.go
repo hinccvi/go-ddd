@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v9"
+	"github.com/google/uuid"
 	authController "github.com/hinccvi/go-ddd/internal/auth/controller/http/v1"
 	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
 	authService "github.com/hinccvi/go-ddd/internal/auth/service"
@@ -27,7 +28,6 @@ import (
 	"github.com/hinccvi/go-ddd/pkg/db"
 	"github.com/hinccvi/go-ddd/pkg/log"
 	rds "github.com/hinccvi/go-ddd/pkg/redis"
-	"github.com/hinccvi/go-ddd/tools"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -153,12 +153,7 @@ func buildMiddleware() []echo.MiddlewareFunc {
 
 		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 			Generator: func() string {
-				u, err := tools.GenerateUUIDv4()
-				for err != nil {
-					u, err = tools.GenerateUUIDv4()
-				}
-
-				return u.String()
+				return uuid.New().String()
 			},
 		}),
 

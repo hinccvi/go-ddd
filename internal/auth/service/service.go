@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -34,12 +35,8 @@ type (
 		timeout time.Duration
 	}
 
-	JWTData struct {
-		UserName string
-	}
-
 	JWTCustomClaims struct {
-		JWTData
+		UserName string `json:"username"`
 		jwt.RegisteredClaims
 	}
 
@@ -51,7 +48,7 @@ type (
 
 	RefreshTokenRequest struct {
 		RefreshToken string `json:"refresh_token" validate:"required"`
-		AccessToken  string `json:"access_token" validate:"required"`
+		AccessToken  string
 	}
 
 	// http response struct.
@@ -64,25 +61,30 @@ type (
 		RefreshToken string `json:"refresh_token"`
 	}
 
+	jwtType string
+
 	RedisKey string
 )
 
 const (
 	JWTBearerFormat = 2
 
+	Access  jwtType = "access"
+	Refresh jwtType = "refresh"
+
 	jwtRemainingTime                     = 60 * time.Second
 	maxLoginAttempt                      = 5
 	incorrectPasswordExpiration          = 24 * time.Hour
-	prefix                      RedisKey = "app:"
-	refreshToken                RedisKey = "refresh_token:"
-	incorrectPassword           RedisKey = "incorrect_password:"
-	smsCooldown                 RedisKey = "sms_cooldown:"
-	smsCode                     RedisKey = "sms_code:"
-	smsLimit                    RedisKey = "sms_limit:"
-	smsAttempt                  RedisKey = "sms_attempt:"
+	prefix                      RedisKey = "app"
+	refreshToken                RedisKey = "refresh_token"
+	incorrectPassword           RedisKey = "incorrect_password"
+	smsCooldown                 RedisKey = "sms_cooldown"
+	smsCode                     RedisKey = "sms_code"
+	smsLimit                    RedisKey = "sms_limit"
+	smsAttempt                  RedisKey = "sms_attempt"
 )
 
-// NewService creates a new authentication service.
+// New creates a new authentication service.
 func New(
 	cfg *config.Config,
 	rds redis.Client,
@@ -104,12 +106,12 @@ func (s service) Login(ctx context.Context, req LoginRequest) (loginResponse, er
 		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
 	}
 
-	accessToken, err := s.generateJWT(user, "")
+	accessToken, err := s.generateJWT(user, Access)
 	if err != nil {
 		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
 	}
 
-	refreshToken, err := s.generateJWT(user, "refresh")
+	refreshToken, err := s.generateJWT(user, Refresh)
 	if err != nil {
 		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
 	}
@@ -146,7 +148,7 @@ func (s service) Refresh(ctx context.Context, req RefreshTokenRequest) (refreshR
 
 	user := entity.GetByUsernameRow{
 		ID:       id,
-		Username: accessClaims.JWTData.UserName,
+		Username: accessClaims.UserName,
 	}
 
 	accessToken, err := s.generateJWT(user, "")
@@ -161,8 +163,10 @@ func (s service) Refresh(ctx context.Context, req RefreshTokenRequest) (refreshR
 // If name and password are correct, an identity is returned. Otherwise, nil is returned.
 func (s service) authenticate(ctx context.Context, username, password string) (entity.GetByUsernameRow, error) {
 	user, err := s.repo.GetUserByUsername(ctx, username)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
 		return entity.GetByUsernameRow{}, errs.ErrInvalidCredentials
+	} else if err != nil {
+		return entity.GetByUsernameRow{}, err
 	}
 
 	if err = tools.BcryptCompare(password, user.Password); err != nil {
@@ -177,21 +181,24 @@ func (s service) authenticate(ctx context.Context, username, password string) (e
 }
 
 // generateJWT generates a JWT that encodes an identity.
-func (s service) generateJWT(user entity.GetByUsernameRow, jwtType string) (string, error) {
+func (s service) generateJWT(user entity.GetByUsernameRow, t jwtType) (string, error) {
 	issuedAt := time.Now()
-	expiresAt := issuedAt.Add(time.Duration(s.cfg.Jwt.AccessExpiration) * time.Minute)
-	signingKey := []byte(s.cfg.Jwt.AccessSigningKey)
+	var expiresAt time.Time
+	var signingKey []byte
 
-	if jwtType == "refresh" {
+	if t == Refresh {
 		expiresAt = issuedAt.Add(time.Duration(s.cfg.Jwt.RefreshExpiration) * time.Minute)
 		signingKey = []byte(s.cfg.Jwt.RefreshSigningKey)
+	} else {
+		expiresAt = issuedAt.Add(time.Duration(s.cfg.Jwt.AccessExpiration) * time.Minute)
+		signingKey = []byte(s.cfg.Jwt.AccessSigningKey)
 	}
 
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		JWTCustomClaims{
-			JWTData: JWTData{UserName: user.Username},
-			RegisteredClaims: jwt.RegisteredClaims{
+		&JWTCustomClaims{
+			user.Username,
+			jwt.RegisteredClaims{
 				Issuer:    s.cfg.App.Name,
 				Subject:   user.ID.String(),
 				Audience:  jwt.ClaimStrings{"all"},
@@ -206,7 +213,7 @@ func (s service) generateJWT(user entity.GetByUsernameRow, jwtType string) (stri
 }
 
 func (s service) parseRefreshToken(refreshToken string) (JWTCustomClaims, error) {
-	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(refreshToken, &JWTCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errs.ErrInvalidJwt
 		}
@@ -218,8 +225,8 @@ func (s service) parseRefreshToken(refreshToken string) (JWTCustomClaims, error)
 		return JWTCustomClaims{}, errs.ErrInvalidJwt
 	}
 
-	if claims, ok := token.Claims.(JWTCustomClaims); ok && token.Valid {
-		return claims, nil
+	if claims, ok := token.Claims.(*JWTCustomClaims); ok && token.Valid {
+		return *claims, nil
 	}
 
 	return JWTCustomClaims{}, fmt.Errorf("[parseRefreshToken] internal error: %w", err)
@@ -300,5 +307,5 @@ func (s service) validateRefreshToken(ctx context.Context, id, token string) err
 }
 
 func (s service) getRedisKey(key RedisKey, field string) string {
-	return s.cfg.App.Name + string(key) + field
+	return fmt.Sprintf("%s:%s:%s", s.cfg.App.Name, string(key), field)
 }
