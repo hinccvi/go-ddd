@@ -75,7 +75,7 @@ func (s service) Get(ctx context.Context, id uuid.UUID) (entity.GetUserRow, erro
 	item, err := s.repo.Get(ctx, id)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return entity.GetUserRow{}, errs.ErrResourceNotFound
+		return entity.GetUserRow{}, sql.ErrNoRows
 	case err != nil:
 		return entity.GetUserRow{}, fmt.Errorf("[Get] internal error: %w", err)
 	}
@@ -110,6 +110,10 @@ func (s service) Count(ctx context.Context) (int64, error) {
 func (s service) Create(ctx context.Context, args entity.CreateUserParams) (entity.CreateUserRow, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
+
+	if args.Username == "" || args.Password == "" {
+		return entity.CreateUserRow{}, fmt.Errorf("[Create] internal error: %w", errs.ErrEmptyField)
+	}
 
 	hashedPassword, err := tools.Bcrypt(args.Password)
 	if err != nil {

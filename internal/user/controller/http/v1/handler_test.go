@@ -71,7 +71,7 @@ func TestHandler(t *testing.T) {
 		{
 			Name:       "get unknown",
 			Method:     http.MethodGet,
-			URL:        fmt.Sprintf("/v1/user/%s", uuid.UUID{}.String()),
+			URL:        fmt.Sprintf("/v1/user/%s", uuid.New().String()),
 			WantStatus: http.StatusBadRequest,
 		},
 		{

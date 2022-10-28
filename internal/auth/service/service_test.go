@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -72,6 +73,18 @@ func TestLogin(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("fail: invalid username", func(t *testing.T) {
+		repo.On("GetUserByUsername", mock.Anything, "user").Return(entity.GetByUsernameRow{}, sql.ErrNoRows).Once()
+		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
+
+		req := LoginRequest{
+			Username: "user",
+			Password: "secret",
+		}
+		_, err = s.Login(context.TODO(), req)
+		assert.Error(t, err)
+	})
+
 	t.Run("fail: max attempt", func(t *testing.T) {
 		mockGetUserByUsername := entity.GetByUsernameRow{
 			ID:       uuid.New(),
@@ -110,7 +123,8 @@ func TestRefresh(t *testing.T) {
 	cfg.Jwt.RefreshExpiration = 1
 	cfg.Jwt.RefreshSigningKey = "secret"
 
-	rds, err := mocks.Redis(miniredis.RunT(t).Addr())
+	mr := miniredis.RunT(t)
+	rds, err := mocks.Redis(mr.Addr())
 	assert.NoError(t, err)
 
 	l, _ := log.NewForTest()
@@ -146,7 +160,7 @@ func TestRefresh(t *testing.T) {
 		assert.NotNil(t, refreshResp)
 	})
 
-	t.Run("fail: invalid refresh token", func(t *testing.T) {
+	t.Run("fail: token not found in cache", func(t *testing.T) {
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
 		var user entity.GetByUsernameRow
@@ -219,5 +233,35 @@ func TestRefresh(t *testing.T) {
 		})
 		assert.Error(t, err)
 		assert.Equal(t, jwt.ErrSignatureInvalid, tools.UnwrapRecursive(err))
+	})
+
+	t.Run("fail: redis error", func(t *testing.T) {
+		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
+
+		mr.Close()
+
+		_, err = s.Login(context.TODO(), LoginRequest{
+			Username: "user",
+			Password: "secret",
+		})
+		assert.Error(t, err)
+	})
+
+	t.Run("fail: redis error", func(t *testing.T) {
+		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
+
+		var loginResp loginResponse
+		loginResp, err = s.Login(context.TODO(), LoginRequest{
+			Username: "user",
+			Password: "secret",
+		})
+
+		mr.Close()
+
+		_, err = s.Refresh(context.TODO(), RefreshTokenRequest{
+			AccessToken:  loginResp.AccessToken,
+			RefreshToken: loginResp.RefreshToken,
+		})
+		assert.Error(t, err)
 	})
 }

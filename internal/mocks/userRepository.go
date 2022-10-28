@@ -11,7 +11,7 @@ import (
 	"github.com/hinccvi/go-ddd/internal/entity"
 )
 
-var errCRUD = errors.New("error crud")
+var ErrCRUD = errors.New("error crud")
 
 type UserRepository struct {
 	Items []entity.User
@@ -19,7 +19,7 @@ type UserRepository struct {
 
 func (m *UserRepository) Get(ctx context.Context, id uuid.UUID) (entity.GetUserRow, error) {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
-		return entity.GetUserRow{}, sql.ErrNoRows
+		return entity.GetUserRow{}, ErrCRUD
 	}
 
 	for _, item := range m.Items {
@@ -41,6 +41,10 @@ func (m *UserRepository) Count(ctx context.Context) (int64, error) {
 }
 
 func (m *UserRepository) Query(ctx context.Context, args entity.ListUserParams) ([]entity.ListUserRow, error) {
+	if args.Offset < 0 {
+		return []entity.ListUserRow{}, ErrCRUD
+	}
+
 	users := []entity.ListUserRow{}
 	for _, v := range m.Items {
 		users = append(users, entity.ListUserRow{
@@ -54,7 +58,7 @@ func (m *UserRepository) Query(ctx context.Context, args entity.ListUserParams) 
 
 func (m *UserRepository) Create(ctx context.Context, args entity.CreateUserParams) (entity.CreateUserRow, error) {
 	if args.Username == "error" {
-		return entity.CreateUserRow{}, errCRUD
+		return entity.CreateUserRow{}, ErrCRUD
 	}
 
 	id := uuid.New()
@@ -77,7 +81,7 @@ func (m *UserRepository) Create(ctx context.Context, args entity.CreateUserParam
 
 func (m *UserRepository) Update(ctx context.Context, args entity.UpdateUserParams) (entity.UpdateUserRow, error) {
 	if args.Username == "error" {
-		return entity.UpdateUserRow{}, errCRUD
+		return entity.UpdateUserRow{}, ErrCRUD
 	}
 
 	var row entity.UpdateUserRow
@@ -101,12 +105,16 @@ func (m *UserRepository) Update(ctx context.Context, args entity.UpdateUserParam
 		}
 	}
 
+	if row.Username == "" {
+		return entity.UpdateUserRow{}, sql.ErrNoRows
+	}
+
 	return row, nil
 }
 
 func (m *UserRepository) Delete(ctx context.Context, id uuid.UUID) (entity.SoftDeleteUserRow, error) {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
-		return entity.SoftDeleteUserRow{}, errCRUD
+		return entity.SoftDeleteUserRow{}, ErrCRUD
 	}
 
 	var row entity.SoftDeleteUserRow

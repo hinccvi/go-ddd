@@ -12,24 +12,19 @@ var (
 	ErrConditionNotFulfil  = errors.New("condition not fulfil")
 	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 	ErrInvalidJwt          = errors.New("invalid token")
-	ErrResourceNotFound    = errors.New("resource fail: not found")
+	ErrEmptyField          = errors.New("empty field")
 	ErrNoRows              = sql.ErrNoRows
 	ErrSystemError         = errors.New("system error")
 )
 
 func GetStatusCodeMap() map[error]int {
 	return map[error]int{
-		ErrInvalidCredentials: http.StatusBadRequest,
-		ErrConditionNotFulfil: http.StatusBadRequest,
-		ErrResourceNotFound:   http.StatusBadRequest,
-		ErrNoRows:             http.StatusBadRequest,
-
+		ErrInvalidCredentials:  http.StatusBadRequest,
+		ErrConditionNotFulfil:  http.StatusBadRequest,
+		ErrNoRows:              http.StatusBadRequest,
 		ErrInvalidRefreshToken: http.StatusForbidden,
 		ErrInvalidJwt:          http.StatusForbidden,
-
-		ErrSystemError: http.StatusInternalServerError,
-
-		// Business logic error
-		ErrMaxAttempt: http.StatusBadRequest,
+		ErrSystemError:         http.StatusInternalServerError,
+		ErrMaxAttempt:          http.StatusBadRequest,
 	}
 }
