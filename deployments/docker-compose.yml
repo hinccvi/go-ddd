@@ -1,0 +1,67 @@
+version: '3.9'
+services:
+  server:
+    image: server
+    build:
+      context: .
+      dockerfile: cmd/server/Dockerfile
+    volumes:
+      - /tmp/app:/var/log/app
+    ports:
+      - "8022"
+    healthcheck:
+      test: curl --fail localhost:8022/healthcheck || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - APP_ENV=dev
+      - APP_DSN=postgresql://db/postgres?sslmode=disable&user=postgres&password=postgres
+      - CONFIGPATH=/www/wwwroot/app/
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: "postgres:alpine"
+    command: postgres -c 'max_connections=200'
+    ports:
+      - "5432"
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "postgres"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    volumes:
+      - /tmp/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379"
+    command: redis-server /usr/local/etc/redis/redis.conf
+    deploy:
+      restart_policy:
+        condition: on-failure
+  
+  nginx:
+    image: nginx:alpine
+    volumes: 
+      - /tmp/nginx:/var/www
+      - /tmp/nginx:/var/log/nginx
+      - /tmp/nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "8080:80"
+    deploy:
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      wallet:
+        condition: service_healthy
