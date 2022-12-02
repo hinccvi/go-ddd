@@ -19,17 +19,14 @@ type resource struct {
 func RegisterHandlers(g *echo.Group, service service.Service, logger log.Logger, authHandler echo.MiddlewareFunc) {
 	r := &resource{logger, service}
 
-	v1 := g.Group("v1")
+	user := g.Group("/user")
 	{
-		user := v1.Group("/user")
-		{
-			user.GET("/:id", r.Get)
-			user.GET("/list", r.Query)
-			user.POST("", r.Create)
+		user.GET("/:id", r.Get)
+		user.GET("/list", r.Query)
+		user.POST("", r.Create)
 
-			user.PATCH("", r.Update, authHandler)
-			user.DELETE("/:id", r.Delete, authHandler)
-		}
+		user.PATCH("", r.Update, authHandler)
+		user.DELETE("/:id", r.Delete, authHandler)
 	}
 }
 

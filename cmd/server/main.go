@@ -14,7 +14,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
-	authController "github.com/hinccvi/go-ddd/internal/auth/controller/http/v1"
+	v1AuthController "github.com/hinccvi/go-ddd/internal/auth/controller/http/v1"
 	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
 	authService "github.com/hinccvi/go-ddd/internal/auth/service"
 	"github.com/hinccvi/go-ddd/internal/config"
@@ -22,8 +22,8 @@ import (
 	errs "github.com/hinccvi/go-ddd/internal/errors"
 	hcController "github.com/hinccvi/go-ddd/internal/healthcheck/controller/http"
 	m "github.com/hinccvi/go-ddd/internal/middleware"
-	userController "github.com/hinccvi/go-ddd/internal/user/controller/http/v1"
-	userRepository "github.com/hinccvi/go-ddd/internal/user/repository"
+	v1UserController "github.com/hinccvi/go-ddd/internal/user/controller/http/v1"
+	userRepo "github.com/hinccvi/go-ddd/internal/user/repository"
 	userService "github.com/hinccvi/go-ddd/internal/user/service"
 	"github.com/hinccvi/go-ddd/pkg/db"
 	"github.com/hinccvi/go-ddd/pkg/log"
@@ -116,22 +116,22 @@ func buildHandler(logger log.Logger, rds redis.Client, dbx entity.DBTX, cfg *con
 		SigningKey: []byte(cfg.Jwt.AccessSigningKey),
 	})
 
-	defaultGroup := e.Group("")
+	dg := e.Group("")
 
 	hcController.RegisterHandlers(
-		defaultGroup,
+		dg,
 		Version,
 	)
 
-	authController.RegisterHandlers(
-		defaultGroup,
+	v1AuthController.RegisterHandlers(
+		dg.Group("/v1"),
 		authService.New(cfg, rds, authRepo.New(dbx, logger), logger, t),
 		logger,
 	)
 
-	userController.RegisterHandlers(
-		defaultGroup,
-		userService.New(rds, userRepository.New(dbx, logger), logger, t),
+	v1UserController.RegisterHandlers(
+		dg.Group("/v1"),
+		userService.New(rds, userRepo.New(dbx, logger), logger, t),
 		logger,
 		authHandler,
 	)

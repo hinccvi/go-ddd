@@ -14,13 +14,10 @@ import (
 func RegisterHandlers(g *echo.Group, service service.Service, logger log.Logger) {
 	r := &resource{logger, service}
 
-	v1 := g.Group("v1")
+	auth := g.Group("/auth")
 	{
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/login", r.login)
-			auth.POST("/refresh", r.refresh)
-		}
+		auth.POST("/login", r.login)
+		auth.POST("/refresh", r.refresh)
 	}
 }
 
