@@ -15,14 +15,14 @@ type AuthRepository struct {
 }
 
 // GetUserByUsername provides a mock function with given fields: ctx, username
-func (_m *AuthRepository) GetUserByUsername(ctx context.Context, username string) (entity.GetByUsernameRow, error) {
+func (_m *AuthRepository) GetUserByUsername(ctx context.Context, username string) (entity.User, error) {
 	ret := _m.Called(ctx, username)
 
-	var r0 entity.GetByUsernameRow
-	if rf, ok := ret.Get(0).(func(context.Context, string) entity.GetByUsernameRow); ok {
+	var r0 entity.User
+	if rf, ok := ret.Get(0).(func(context.Context, string) entity.User); ok {
 		r0 = rf(ctx, username)
 	} else {
-		r0 = ret.Get(0).(entity.GetByUsernameRow)
+		r0 = ret.Get(0).(entity.User)
 	}
 
 	var r1 error

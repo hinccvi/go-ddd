@@ -106,12 +106,12 @@ func (s service) Login(ctx context.Context, req LoginRequest) (loginResponse, er
 		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
 	}
 
-	accessToken, err := s.generateJWT(user, Access)
+	accessToken, err := s.generateJWT(user.ID, user.Username, Access)
 	if err != nil {
 		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
 	}
 
-	refreshToken, err := s.generateJWT(user, Refresh)
+	refreshToken, err := s.generateJWT(user.ID, user.Username, Refresh)
 	if err != nil {
 		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
 	}
@@ -146,12 +146,7 @@ func (s service) Refresh(ctx context.Context, req RefreshTokenRequest) (refreshR
 		return refreshResponse{}, fmt.Errorf("[Refresh] internal error: %w", err)
 	}
 
-	user := entity.GetByUsernameRow{
-		ID:       id,
-		Username: accessClaims.UserName,
-	}
-
-	accessToken, err := s.generateJWT(user, "")
+	accessToken, err := s.generateJWT(id, accessClaims.UserName, Access)
 	if err != nil {
 		return refreshResponse{}, fmt.Errorf("[Refresh] internal error: %w", err)
 	}
@@ -161,27 +156,27 @@ func (s service) Refresh(ctx context.Context, req RefreshTokenRequest) (refreshR
 
 // authenticate authenticates a user using username and password.
 // If name and password are correct, an identity is returned. Otherwise, nil is returned.
-func (s service) authenticate(ctx context.Context, username, password string) (entity.GetByUsernameRow, error) {
+func (s service) authenticate(ctx context.Context, username, password string) (entity.User, error) {
 	user, err := s.repo.GetUserByUsername(ctx, username)
 	if errors.Is(err, sql.ErrNoRows) {
-		return entity.GetByUsernameRow{}, errs.ErrInvalidCredentials
+		return entity.User{}, errs.ErrInvalidCredentials
 	} else if err != nil {
-		return entity.GetByUsernameRow{}, err
+		return entity.User{}, err
 	}
 
 	if err = tools.BcryptCompare(password, user.Password); err != nil {
 		if err = s.cacheIncorrectPassword(ctx, user.ID.String()); err != nil {
-			return entity.GetByUsernameRow{}, fmt.Errorf("[authenticate] internal error: %w", err)
+			return entity.User{}, fmt.Errorf("[authenticate] internal error: %w", err)
 		}
 
-		return entity.GetByUsernameRow{}, errs.ErrInvalidCredentials
+		return entity.User{}, errs.ErrInvalidCredentials
 	}
 
 	return user, nil
 }
 
 // generateJWT generates a JWT that encodes an identity.
-func (s service) generateJWT(user entity.GetByUsernameRow, t jwtType) (string, error) {
+func (s service) generateJWT(id uuid.UUID, username string, t jwtType) (string, error) {
 	issuedAt := time.Now()
 	var expiresAt time.Time
 	var signingKey []byte
@@ -197,10 +192,10 @@ func (s service) generateJWT(user entity.GetByUsernameRow, t jwtType) (string, e
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		&JWTCustomClaims{
-			user.Username,
+			username,
 			jwt.RegisteredClaims{
 				Issuer:    s.cfg.App.Name,
-				Subject:   user.ID.String(),
+				Subject:   id.String(),
 				Audience:  jwt.ClaimStrings{"all"},
 				IssuedAt:  jwt.NewNumericDate(issuedAt),
 				ExpiresAt: jwt.NewNumericDate(expiresAt),

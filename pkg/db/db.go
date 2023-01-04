@@ -2,13 +2,13 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/hinccvi/go-ddd/internal/config"
+	"github.com/jmoiron/sqlx"
+
 	// postgres driver required by database/sql.
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"go.uber.org/zap"
 )
 
 const (
@@ -18,8 +18,8 @@ const (
 	contextTimeout time.Duration = 5 * time.Second
 )
 
-func Connect(ctx context.Context, cfg *config.Config, log *zap.Logger) (*sql.DB, error) {
-	db, err := sql.Open("pgx", cfg.Dsn)
+func Connect(ctx context.Context, cfg *config.Config) (*sqlx.DB, error) {
+	db, err := sqlx.Open("pgx", cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}

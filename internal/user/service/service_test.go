@@ -41,7 +41,7 @@ func TestGet(t *testing.T) {
 	s := service{rds, repo, logger, 2 * time.Second}
 
 	t.Run("success", func(t *testing.T) {
-		var resp entity.GetUserRow
+		var resp entity.User
 		resp, err = s.Get(context.TODO(), id)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
@@ -84,15 +84,16 @@ func TestQuery(t *testing.T) {
 	s := service{rds, repo, logger, 2 * time.Second}
 
 	t.Run("success", func(t *testing.T) {
-		var resp QueryUserResponse
-		resp, err = s.Query(context.TODO(), entity.ListUserParams{Limit: 10, Offset: 0})
+		var list []entity.User
+		var total int64
+		list, total, err = s.Query(context.TODO(), 1, 10)
 		assert.NoError(t, err)
-		assert.Len(t, resp.List, 1)
-		assert.Equal(t, resp.Total, int64(1))
+		assert.Len(t, list, 1)
+		assert.Equal(t, total, int64(1))
 	})
 
 	t.Run("fail: db error", func(t *testing.T) {
-		_, err = s.Query(context.TODO(), entity.ListUserParams{Limit: 10, Offset: -1})
+		_, _, err = s.Query(context.TODO(), 1, -1)
 		assert.Error(t, err)
 	})
 }
@@ -144,25 +145,22 @@ func TestCreate(t *testing.T) {
 	s := service{rds, repo, logger, 2 * time.Second}
 
 	t.Run("success", func(t *testing.T) {
-		args := entity.CreateUserParams{
+		u := entity.User{
 			Username: "user",
 			Password: "secret",
 		}
-		var resp entity.CreateUserRow
-		resp, err = s.Create(context.TODO(), args)
+		err = s.Create(context.TODO(), u)
 		assert.NoError(t, err)
-		assert.NotEqual(t, resp.ID, uuid.UUID{})
-		assert.Equal(t, resp.Username, "user")
 	})
 
 	t.Run("fail: empty field", func(t *testing.T) {
-		_, err = s.Create(context.TODO(), entity.CreateUserParams{})
+		err = s.Create(context.TODO(), entity.User{})
 		assert.Error(t, err)
 		assert.Equal(t, errs.ErrEmptyField, tools.UnwrapRecursive(err))
 	})
 
 	t.Run("fail: db error", func(t *testing.T) {
-		_, err = s.Create(context.TODO(), entity.CreateUserParams{Username: "error", Password: "secret"})
+		err = s.Create(context.TODO(), entity.User{Username: "error", Password: "secret"})
 		assert.Error(t, err)
 		assert.Equal(t, mocks.ErrCRUD, tools.UnwrapRecursive(err))
 	})
@@ -192,24 +190,22 @@ func TestUpdate(t *testing.T) {
 	s := service{rds, repo, logger, 2 * time.Second}
 
 	t.Run("success", func(t *testing.T) {
-		args := entity.UpdateUserParams{
+		u := entity.User{
 			ID:       id,
 			Username: "newuser",
 			Password: "newsecret",
 		}
-		var resp entity.UpdateUserRow
-		resp, err = s.Update(context.TODO(), args)
+		err = s.Update(context.TODO(), u)
 		assert.NoError(t, err)
-		assert.Equal(t, resp.Username, "newuser")
 	})
 
 	t.Run("fail: not found", func(t *testing.T) {
-		args := entity.UpdateUserParams{
+		args := entity.User{
 			ID:       uuid.New(),
 			Username: "newuser",
 			Password: "newsecret",
 		}
-		_, err = s.Update(context.TODO(), args)
+		err = s.Update(context.TODO(), args)
 		assert.Error(t, err)
 		assert.Equal(t, sql.ErrNoRows, tools.UnwrapRecursive(err))
 	})
@@ -239,14 +235,12 @@ func TestDelete(t *testing.T) {
 	s := service{rds, repo, logger, 2 * time.Second}
 
 	t.Run("success", func(t *testing.T) {
-		var resp entity.SoftDeleteUserRow
-		resp, err = s.Delete(context.TODO(), id)
+		err = s.Delete(context.TODO(), id)
 		assert.NoError(t, err)
-		assert.Equal(t, resp.Username, "user")
 	})
 
 	t.Run("fail: not found", func(t *testing.T) {
-		_, err = s.Delete(context.TODO(), uuid.New())
+		err = s.Delete(context.TODO(), uuid.New())
 		assert.Error(t, err)
 		assert.Equal(t, sql.ErrNoRows, tools.UnwrapRecursive(err))
 	})

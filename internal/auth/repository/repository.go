@@ -5,27 +5,41 @@ import (
 
 	"github.com/hinccvi/go-ddd/internal/entity"
 	"github.com/hinccvi/go-ddd/pkg/log"
+	"github.com/jmoiron/sqlx"
 )
 
-type Repository interface {
-	GetUserByUsername(ctx context.Context, username string) (entity.GetByUsernameRow, error)
-}
+type (
+	Repository interface {
+		GetUserByUsername(ctx context.Context, username string) (entity.User, error)
+	}
 
-type repository struct {
-	db     entity.DBTX
-	logger log.Logger
-}
+	repository struct {
+		db     *sqlx.DB
+		logger log.Logger
+	}
+)
 
-func New(db entity.DBTX, logger log.Logger) Repository {
+const (
+	getUserByUsername string = `SELECT id, username, password 
+                              FROM "user"
+                              WHERE username = $1 AND deleted_at IS NULL 
+                              LIMIT 1`
+)
+
+func New(db *sqlx.DB, logger log.Logger) Repository {
 	return repository{db, logger}
 }
 
-func (r repository) GetUserByUsername(ctx context.Context, username string) (entity.GetByUsernameRow, error) {
-	queries := entity.New(r.db)
-
-	user, err := queries.GetByUsername(ctx, username)
+func (r repository) GetUserByUsername(ctx context.Context, username string) (entity.User, error) {
+	getUserStmt, err := r.db.PreparexContext(ctx, getUserByUsername)
 	if err != nil {
-		return entity.GetByUsernameRow{}, err
+		return entity.User{}, err
+	}
+	defer getUserStmt.Close()
+
+	var user entity.User
+	if err = getUserStmt.GetContext(ctx, &user, username); err != nil {
+		return entity.User{}, err
 	}
 
 	return user, nil

@@ -29,7 +29,7 @@ func TestHandler(t *testing.T) {
 		t.FailNow()
 	}
 
-	mockGetUserByUsername := []entity.GetByUsernameRow{
+	mockGetUserByUsername := []entity.User{
 		{
 			ID:       id1,
 			Username: "user",
@@ -70,7 +70,7 @@ func TestHandler(t *testing.T) {
 
 	rds.Set(context.TODO(), mocks.RefreshTokenKey(id2.String()), refreshToken, -1)
 
-	RegisterHandlers(router.Group(""), service.New(&cfg, rds, &repo, logger, 2*time.Second), logger)
+	RegisterHandlers(router.Group("v1"), service.New(&cfg, rds, &repo, logger, 2*time.Second), logger)
 
 	tests := []test.APITestCase{
 		{

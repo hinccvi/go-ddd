@@ -49,7 +49,7 @@ func TestHandler(t *testing.T) {
 		t.FailNow()
 	}
 
-	RegisterHandlers(router.Group(""), service.New(rds, repo, logger, 2*time.Second), logger, authHandler)
+	RegisterHandlers(router.Group("v1"), service.New(rds, repo, logger, 2*time.Second), logger, authHandler)
 	header := mocks.AuthHeader(id.String(), "user")
 
 	tests := []test.APITestCase{
@@ -58,7 +58,7 @@ func TestHandler(t *testing.T) {
 			Method:       http.MethodGet,
 			URL:          "/v1/user/list",
 			WantStatus:   http.StatusOK,
-			WantResponse: fmt.Sprintf(`*{"list":[{"id":"%s","username":"user"}],"total":1}*`, id.String()),
+			WantResponse: fmt.Sprintf(`*{"list":[{"id":"%s","username":"user"*`, id.String()),
 		},
 		{
 			Name:         "get init user",
@@ -66,7 +66,7 @@ func TestHandler(t *testing.T) {
 			URL:          fmt.Sprintf("/v1/user/%s", id.String()),
 			Param:        id.String(),
 			WantStatus:   http.StatusOK,
-			WantResponse: fmt.Sprintf(`*{"id":"%s","username":"user"}*`, id.String()),
+			WantResponse: fmt.Sprintf(`*{"id":"%s","username":"user"*`, id.String()),
 		},
 		{
 			Name:       "get unknown",

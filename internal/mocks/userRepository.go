@@ -17,14 +17,14 @@ type UserRepository struct {
 	Items []entity.User
 }
 
-func (m *UserRepository) Get(ctx context.Context, id uuid.UUID) (entity.GetUserRow, error) {
+func (m *UserRepository) Get(ctx context.Context, id uuid.UUID) (entity.User, error) {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
-		return entity.GetUserRow{}, ErrCRUD
+		return entity.User{}, ErrCRUD
 	}
 
 	for _, item := range m.Items {
 		if item.ID == id {
-			u := entity.GetUserRow{
+			u := entity.User{
 				ID:       item.ID,
 				Username: item.Username,
 			}
@@ -33,21 +33,21 @@ func (m *UserRepository) Get(ctx context.Context, id uuid.UUID) (entity.GetUserR
 		}
 	}
 
-	return entity.GetUserRow{}, sql.ErrNoRows
+	return entity.User{}, sql.ErrNoRows
 }
 
 func (m *UserRepository) Count(ctx context.Context) (int64, error) {
 	return int64(len(m.Items)), nil
 }
 
-func (m *UserRepository) Query(ctx context.Context, args entity.ListUserParams) ([]entity.ListUserRow, error) {
-	if args.Offset < 0 {
-		return []entity.ListUserRow{}, ErrCRUD
+func (m *UserRepository) Query(ctx context.Context, page, size int) ([]entity.User, error) {
+	if page <= 0 || size <= 0 {
+		return []entity.User{}, ErrCRUD
 	}
 
-	users := []entity.ListUserRow{}
+	users := []entity.User{}
 	for _, v := range m.Items {
-		users = append(users, entity.ListUserRow{
+		users = append(users, entity.User{
 			ID:       v.ID,
 			Username: v.Username,
 		})
@@ -56,83 +56,72 @@ func (m *UserRepository) Query(ctx context.Context, args entity.ListUserParams) 
 	return users, nil
 }
 
-func (m *UserRepository) Create(ctx context.Context, args entity.CreateUserParams) (entity.CreateUserRow, error) {
-	if args.Username == "error" {
-		return entity.CreateUserRow{}, ErrCRUD
+func (m *UserRepository) Create(ctx context.Context, u entity.User) error {
+	if u.Username == "error" {
+		return ErrCRUD
 	}
 
 	id := uuid.New()
 
-	row := entity.CreateUserRow{
-		ID:       id,
-		Username: args.Username,
-	}
-
 	m.Items = append(m.Items, entity.User{
 		ID:        id,
-		Username:  args.Username,
-		Password:  args.Password,
+		Username:  u.Username,
+		Password:  u.Password,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	})
 
-	return row, nil
+	return nil
 }
 
-func (m *UserRepository) Update(ctx context.Context, args entity.UpdateUserParams) (entity.UpdateUserRow, error) {
-	if args.Username == "error" {
-		return entity.UpdateUserRow{}, ErrCRUD
+func (m *UserRepository) Update(ctx context.Context, u entity.User) error {
+	if u.Username == "error" {
+		return ErrCRUD
 	}
 
-	var row entity.UpdateUserRow
-
+	isFound := false
 	for i, item := range m.Items {
-		if item.ID == args.ID {
-			if args.Username != "" {
-				m.Items[i].Username = args.Username
+		if item.ID == u.ID {
+			if u.Username != "" {
+				m.Items[i].Username = u.Username
 			}
 
-			if args.Password != "" {
-				m.Items[i].Password = args.Password
+			if u.Password != "" {
+				m.Items[i].Password = u.Password
 			}
 
 			m.Items[i].UpdatedAt = time.Now()
 
-			row.ID = m.Items[i].ID
-			row.Username = m.Items[i].Username
-
+			isFound = true
 			break
 		}
 	}
 
-	if row.Username == "" {
-		return entity.UpdateUserRow{}, sql.ErrNoRows
+	if !isFound {
+		return sql.ErrNoRows
 	}
 
-	return row, nil
+	return nil
 }
 
-func (m *UserRepository) Delete(ctx context.Context, id uuid.UUID) (entity.SoftDeleteUserRow, error) {
+func (m *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
-		return entity.SoftDeleteUserRow{}, ErrCRUD
+		return ErrCRUD
 	}
 
-	var row entity.SoftDeleteUserRow
-
+	isFound := false
 	for i, item := range m.Items {
 		if item.ID == id {
 			m.Items[i].DeletedAt = sql.NullTime{Time: time.Now(), Valid: true}
 
-			row.ID = m.Items[i].ID
-			row.Username = m.Items[i].Username
-
+			isFound = true
 			break
 		}
 	}
 
-	if row.Username == "" {
-		return entity.SoftDeleteUserRow{}, sql.ErrNoRows
+	if !isFound {
+		return sql.ErrNoRows
 	}
 
-	return row, nil
+	return nil
 }

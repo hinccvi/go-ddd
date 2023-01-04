@@ -36,7 +36,7 @@ func TestLogin(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		password, _ := tools.Bcrypt("secret")
 
-		mockGetUserByUsername := entity.GetByUsernameRow{
+		mockGetUserByUsername := entity.User{
 			ID:       uuid.New(),
 			Username: "user",
 			Password: password,
@@ -57,7 +57,7 @@ func TestLogin(t *testing.T) {
 	t.Run("fail: incorrect credential", func(t *testing.T) {
 		password, _ := tools.Bcrypt("anothersecret")
 
-		mockGetUserByUsername := entity.GetByUsernameRow{
+		mockGetUserByUsername := entity.User{
 			ID:       uuid.New(),
 			Username: "user",
 			Password: password,
@@ -74,7 +74,7 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("fail: invalid username", func(t *testing.T) {
-		repo.On("GetUserByUsername", mock.Anything, "user").Return(entity.GetByUsernameRow{}, sql.ErrNoRows).Once()
+		repo.On("GetUserByUsername", mock.Anything, "user").Return(entity.User{}, sql.ErrNoRows).Once()
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
 		req := LoginRequest{
@@ -86,7 +86,7 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("fail: max attempt", func(t *testing.T) {
-		mockGetUserByUsername := entity.GetByUsernameRow{
+		mockGetUserByUsername := entity.User{
 			ID:       uuid.New(),
 			Username: "user",
 			Password: "secret",
@@ -134,7 +134,7 @@ func TestRefresh(t *testing.T) {
 
 	password, _ := tools.Bcrypt("secret")
 	repo.On("GetUserByUsername", mock.Anything, "user").Return(
-		entity.GetByUsernameRow{
+		entity.User{
 			ID:       uuid.New(),
 			Username: "user",
 			Password: password,
@@ -163,15 +163,15 @@ func TestRefresh(t *testing.T) {
 	t.Run("fail: token not found in cache", func(t *testing.T) {
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
-		var user entity.GetByUsernameRow
+		var user entity.User
 		user, err = s.repo.GetUserByUsername(context.TODO(), "user")
 		assert.NoError(t, err)
 
 		var accessJWT, refreshJWT string
-		accessJWT, err = s.generateJWT(user, Access)
+		accessJWT, err = s.generateJWT(user.ID, user.Username, Access)
 		assert.NoError(t, err)
 
-		refreshJWT, err = s.generateJWT(user, Refresh)
+		refreshJWT, err = s.generateJWT(user.ID, user.Username, Refresh)
 		assert.NoError(t, err)
 
 		_, err = s.Refresh(context.TODO(), RefreshTokenRequest{

@@ -10,8 +10,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/hinccvi/go-ddd/internal/entity"
 	"github.com/hinccvi/go-ddd/pkg/log"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var errConnectionRefused = errors.New("connection refused")
@@ -22,12 +25,10 @@ func TestGetUserByUsername(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer db.Close()
+	dbx := sqlx.NewDb(db, "pgx")
 
 	l, _ := log.NewForTest()
 	logger := log.NewWithZap(l)
-
-	query := `-- name: GetByUsername :one
-	SELECT id, username, password FROM "user" WHERE username = $1 AND deleted_at IS NULL LIMIT 1`
 
 	t.Run("success", func(t *testing.T) {
 		id := uuid.NewString()
@@ -37,11 +38,11 @@ func TestGetUserByUsername(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "username", "password"}).
 			AddRow(id, username, password)
 
-		mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(username).WillReturnRows(rows)
+		mock.ExpectPrepare(regexp.QuoteMeta(getUserByUsername)).ExpectQuery().WithArgs(username).WillReturnRows(rows)
 
-		repo := New(db, logger)
+		repo := New(dbx, logger)
 
-		var user entity.GetByUsernameRow
+		var user entity.User
 		user, err = repo.GetUserByUsername(context.TODO(), username)
 		assert.NoError(t, err)
 		assert.Equal(t, id, user.ID.String())
@@ -50,17 +51,17 @@ func TestGetUserByUsername(t *testing.T) {
 	})
 
 	t.Run("fail: not found", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs("xxx").WillReturnError(sql.ErrNoRows)
+		mock.ExpectQuery(regexp.QuoteMeta(getUserByUsername)).WithArgs("xxx").WillReturnError(sql.ErrNoRows)
 
-		repo := New(db, logger)
+		repo := New(dbx, logger)
 		_, err = repo.GetUserByUsername(context.TODO(), "xxx")
 		assert.Error(t, err)
 	})
 
 	t.Run("fail: db down", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs("xxx").WillReturnError(errConnectionRefused)
+		mock.ExpectQuery(regexp.QuoteMeta(getUserByUsername)).WithArgs("xxx").WillReturnError(errConnectionRefused)
 
-		repo := New(db, logger)
+		repo := New(dbx, logger)
 		_, err = repo.GetUserByUsername(context.TODO(), "xxx")
 		assert.Error(t, err)
 	})

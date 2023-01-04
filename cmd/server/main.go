@@ -18,7 +18,6 @@ import (
 	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
 	authService "github.com/hinccvi/go-ddd/internal/auth/service"
 	"github.com/hinccvi/go-ddd/internal/config"
-	"github.com/hinccvi/go-ddd/internal/entity"
 	errs "github.com/hinccvi/go-ddd/internal/errors"
 	hcController "github.com/hinccvi/go-ddd/internal/healthcheck/controller/http"
 	m "github.com/hinccvi/go-ddd/internal/middleware"
@@ -28,6 +27,7 @@ import (
 	"github.com/hinccvi/go-ddd/pkg/db"
 	"github.com/hinccvi/go-ddd/pkg/log"
 	rds "github.com/hinccvi/go-ddd/pkg/redis"
+	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -61,7 +61,7 @@ func main() {
 	}
 
 	// connect to database
-	dbx, err := db.Connect(ctx, &cfg, log.New(*flagEnv, log.SQLLog))
+	db, err := db.Connect(ctx, &cfg)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.App.Port),
-		Handler:           buildHandler(logger, rds, dbx, &cfg),
+		Handler:           buildHandler(logger, rds, db, &cfg),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
@@ -103,7 +103,7 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(logger log.Logger, rds redis.Client, dbx entity.DBTX, cfg *config.Config) *echo.Echo {
+func buildHandler(logger log.Logger, rds redis.Client, db *sqlx.DB, cfg *config.Config) *echo.Echo {
 	t := time.Duration(cfg.Context.Timeout) * time.Second
 
 	e := echo.New()
@@ -125,13 +125,13 @@ func buildHandler(logger log.Logger, rds redis.Client, dbx entity.DBTX, cfg *con
 
 	v1AuthController.RegisterHandlers(
 		dg.Group("/v1"),
-		authService.New(cfg, rds, authRepo.New(dbx, logger), logger, t),
+		authService.New(cfg, rds, authRepo.New(db, logger), logger, t),
 		logger,
 	)
 
 	v1UserController.RegisterHandlers(
 		dg.Group("/v1"),
-		userService.New(rds, userRepo.New(dbx, logger), logger, t),
+		userService.New(rds, userRepo.New(db, logger), logger, t),
 		logger,
 		authHandler,
 	)

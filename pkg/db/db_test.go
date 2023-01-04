@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/hinccvi/go-ddd/internal/config"
-	"github.com/hinccvi/go-ddd/pkg/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,31 +20,24 @@ func TestConnect(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, reflect.DeepEqual(config.Config{}, cfg))
 
-	zap := log.New(*flagMode, log.AccessLog)
-
-	db, err := Connect(context.TODO(), &cfg, zap)
+	db, err := Connect(context.TODO(), &cfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, db)
 }
 
 func TestConnect_WhenConfigIsEmpty(t *testing.T) {
-	zap := log.New(*flagMode, log.AccessLog)
-
-	db, err := Connect(context.TODO(), &config.Config{}, zap)
+	db, err := Connect(context.TODO(), &config.Config{})
 	assert.NotNil(t, err)
 	assert.Nil(t, db)
 }
 
 func TestConnect_WhenInvalidDSN(t *testing.T) {
-	zap := log.New(*flagMode, log.AccessLog)
-
 	cfg, err := config.Load(*flagMode)
 	cfg.Dsn = "xxx"
 
 	assert.Nil(t, err)
-	assert.False(t, reflect.DeepEqual(cfg, zap))
 
-	db, err := Connect(context.TODO(), &cfg, zap)
+	db, err := Connect(context.TODO(), &cfg)
 	assert.NotNil(t, err)
 	assert.Nil(t, db)
 }

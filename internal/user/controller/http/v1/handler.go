@@ -50,27 +50,30 @@ func (r resource) Query(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int32 = 10, 0
-
-	if req.Limit > 0 {
-		limit = req.Limit
+	if req.Page == 0 {
+		req.Page = 1
 	}
 
-	if req.Offset != nil && *req.Offset > 0 {
-		offset = *req.Offset
+	if req.Size == 0 {
+		req.Size = 10
 	}
 
-	args := entity.ListUserParams{
-		Limit:  limit,
-		Offset: offset,
-	}
-
-	list, err := r.service.Query(c.Request().Context(), args)
+	list, total, err := r.service.Query(c.Request().Context(), req.Page, req.Size)
 	if err != nil {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Success, list)
+	return tools.JSON(
+		c,
+		http.StatusOK,
+		tools.Success,
+		struct {
+			List  []entity.User `json:"list"`
+			Total int64         `json:"total"`
+		}{
+			List:  list,
+			Total: total,
+		})
 }
 
 func (r resource) Create(c echo.Context) error {
@@ -79,17 +82,15 @@ func (r resource) Create(c echo.Context) error {
 		return err
 	}
 
-	args := entity.CreateUserParams{
+	u := entity.User{
 		Username: req.Username,
 		Password: req.Password,
 	}
-
-	user, err := r.service.Create(context.TODO(), args)
-	if err != nil {
+	if err := r.service.Create(context.TODO(), u); err != nil {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Created, user)
+	return tools.JSON(c, http.StatusOK, tools.Created, nil)
 }
 
 func (r resource) Update(c echo.Context) error {
@@ -98,18 +99,16 @@ func (r resource) Update(c echo.Context) error {
 		return err
 	}
 
-	args := entity.UpdateUserParams{
+	u := entity.User{
 		ID:       req.ID,
 		Username: req.Username,
 		Password: req.Password,
 	}
-
-	user, err := r.service.Update(context.TODO(), args)
-	if err != nil {
+	if err := r.service.Update(context.TODO(), u); err != nil {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Updated, user)
+	return tools.JSON(c, http.StatusOK, tools.Updated, nil)
 }
 
 func (r resource) Delete(c echo.Context) error {
@@ -118,10 +117,9 @@ func (r resource) Delete(c echo.Context) error {
 		return err
 	}
 
-	user, err := r.service.Delete(context.TODO(), *req.ID)
-	if err != nil {
+	if err := r.service.Delete(context.TODO(), *req.ID); err != nil {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Deleted, user)
+	return tools.JSON(c, http.StatusOK, tools.Deleted, nil)
 }
