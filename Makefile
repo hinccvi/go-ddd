@@ -1,6 +1,6 @@
 MODULE = $(shell go list -m)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "1.0.0")
-PACKAGES := $(shell go list ./... | grep -v -e server -e test -e middleware -e entity -e constants -e mocks -e errors | sort -r )
+PACKAGES := $(shell go list ./... | grep -v -e server -e test -e middleware -e entity -e constants -e mocks -e errors -e proto | sort -r )
 LDFLAGS := -ldflags "-X main.Version=${VERSION}"
 
 CONFIG_FILE ?= ./config/local.yml
@@ -155,3 +155,13 @@ mockery: ## mock code autogenerator
 	@read -p "Enter the repository name: " repo; \
 	struct_name="$$(tr '[:lower:]' '[:upper:]' <<< $${repo:0:1})$${repo:1}"; \
 	$(MOCKERY) --dir=./internal/$${repo// /_}/repository/ --filename=$${repo// /_}Repository.go --structname=$${struct_name}Repository
+
+.PHONY: protoc
+protoc: ## compile protobuf file
+	@protoc \
+  -I . \
+  --go_out=. --go_opt=paths=source_relative \
+  --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+  --validate_out=lang=go,paths=source_relative:. \
+  -Iproto/ $$(find proto -iname "*.proto") \
+  -I $$GOPATH/src/protoc-gen-validate/

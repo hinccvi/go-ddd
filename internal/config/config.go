@@ -8,6 +8,8 @@ type Config struct {
 	App struct {
 		Name string `mapstructure:"name"`
 		Port int    `mapstructure:"port"`
+		Cert string `mapstructure:"cert"`
+		Key  string `mapstructure:"key"`
 	} `mapstructure:"app"`
 
 	Context struct {

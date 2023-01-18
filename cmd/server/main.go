@@ -2,34 +2,28 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/go-redis/redis/v9"
-	"github.com/google/uuid"
-	v1AuthController "github.com/hinccvi/go-ddd/internal/auth/controller/http/v1"
+	v1AuthPB "github.com/hinccvi/go-ddd/internal/auth/controller/grpc/v1"
 	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
 	authService "github.com/hinccvi/go-ddd/internal/auth/service"
 	"github.com/hinccvi/go-ddd/internal/config"
-	errs "github.com/hinccvi/go-ddd/internal/errors"
-	hcController "github.com/hinccvi/go-ddd/internal/healthcheck/controller/http"
-	m "github.com/hinccvi/go-ddd/internal/middleware"
-	v1UserController "github.com/hinccvi/go-ddd/internal/user/controller/http/v1"
+	v1UserPB "github.com/hinccvi/go-ddd/internal/user/controller/grpc/v1"
 	userRepo "github.com/hinccvi/go-ddd/internal/user/repository"
 	userService "github.com/hinccvi/go-ddd/internal/user/service"
 	"github.com/hinccvi/go-ddd/pkg/db"
 	"github.com/hinccvi/go-ddd/pkg/log"
 	rds "github.com/hinccvi/go-ddd/pkg/redis"
-	"github.com/jmoiron/sqlx"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/hinccvi/go-ddd/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/examples/data"
 )
 
 var (
@@ -38,11 +32,6 @@ var (
 
 	//nolint:gochecknoglobals // environment flag that only used in main
 	flagEnv = flag.String("env", "local", "environment")
-)
-
-const (
-	gracefulTimeout   = 10 * time.Second
-	readHeaderTimeout = 2 * time.Second
 )
 
 func main() {
@@ -57,109 +46,71 @@ func main() {
 	// load application configurations
 	cfg, err := config.Load(*flagEnv)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatalf("fail to load app config: %v", err)
 	}
 
 	// connect to database
 	db, err := db.Connect(ctx, &cfg)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatalf("fail to connect to db: %v", err)
 	}
 
 	// connect to redis
-	rds, err := rds.Connect(ctx, cfg)
+	rds, err := rds.Connect(ctx, &cfg)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatalf("fail to connect to redis: %v", err)
 	}
 
-	server := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.App.Port),
-		Handler:           buildHandler(logger, rds, db, &cfg),
-		ReadHeaderTimeout: readHeaderTimeout,
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", cfg.App.Port))
+	if err != nil {
+		logger.Fatalf("failed to listen: %v", err)
 	}
 
-	logger.Infof("Server listening on %s", server.Addr)
-
-	go func() {
-		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatal(err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	logger.Info("Server shutting down")
-
-	ctx, cancel := context.WithTimeout(ctx, gracefulTimeout)
-	defer cancel()
-
-	if err = server.Shutdown(ctx); err != nil {
-		logger.Info(err)
+	var opts []grpc.ServerOption
+	if cfg.App.Cert == "" {
+		cfg.App.Cert = data.Path("x509/server_cert.pem")
 	}
+	if cfg.App.Key == "" {
+		cfg.App.Key = data.Path("x509/server_key.pem")
+	}
+	creds, err := credentials.NewServerTLSFromFile(cfg.App.Cert, cfg.App.Key)
+	if err != nil {
+		logger.Fatalf("failed to generate credentials: %v", err)
+	}
+	opts = []grpc.ServerOption{grpc.Creds(creds)}
 
-	logger.Info("Server exiting")
-}
-
-// buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(logger log.Logger, rds redis.Client, db *sqlx.DB, cfg *config.Config) *echo.Echo {
+	// timeout duration for each request
 	t := time.Duration(cfg.Context.Timeout) * time.Second
 
-	e := echo.New()
-	e.HTTPErrorHandler = m.NewHTTPErrorHandler(errs.GetStatusCodeMap()).Handler(logger)
-	e.Validator = &m.CustomValidator{Validator: validator.New()}
-	e.Use(buildMiddleware()...)
+	// register grpc server
+	grpcServer := grpc.NewServer(opts...)
 
-	authHandler := middleware.JWTWithConfig(middleware.JWTConfig{
-		Claims:     &authService.JWTCustomClaims{},
-		SigningKey: []byte(cfg.Jwt.AccessSigningKey),
-	})
-
-	dg := e.Group("")
-
-	hcController.RegisterHandlers(
-		dg,
-		Version,
+	proto.RegisterAuthServiceServer(
+		grpcServer,
+		v1AuthPB.RegisterHandlers(authService.New(&cfg, rds, authRepo.New(db, logger), logger, t), logger),
 	)
 
-	v1AuthController.RegisterHandlers(
-		dg.Group("/v1"),
-		authService.New(cfg, rds, authRepo.New(db, logger), logger, t),
-		logger,
+	proto.RegisterUserServiceServer(
+		grpcServer,
+		v1UserPB.RegisterHandlers(userService.New(rds, userRepo.New(db, logger), logger, t), logger),
 	)
 
-	v1UserController.RegisterHandlers(
-		dg.Group("/v1"),
-		userService.New(rds, userRepo.New(db, logger), logger, t),
-		logger,
-		authHandler,
-	)
+	// seperate goroutine to listen on kill signal
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		<-quit
 
-	return e
-}
+		logger.Info("Server shutting down")
 
-// buildMiddleware sets up the middlewre logic and builds a handler.
-func buildMiddleware() []echo.MiddlewareFunc {
-	var middlewares []echo.MiddlewareFunc
-	logger := log.NewWithZap(log.New(*flagEnv, log.AccessLog)).With(context.TODO(), "version", Version)
+		grpcServer.GracefulStop()
 
-	middlewares = append(middlewares,
+		logger.Info("Server exiting")
+	}()
 
-		// Echo built-in middleware
-		middleware.Recover(),
+	logger.Infof("grpc server listening on %v", lis.Addr())
 
-		middleware.Secure(),
-
-		middleware.RequestIDWithConfig(middleware.RequestIDConfig{
-			Generator: func() string {
-				return uuid.New().String()
-			},
-		}),
-
-		// Api access log
-		m.AccessLogHandler(logger),
-	)
-
-	return middlewares
+	if err = grpcServer.Serve(lis); err != nil {
+		logger.Fatalf("failed to serve grpc server: %v", err)
+	}
 }

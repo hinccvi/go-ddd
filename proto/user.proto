@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package v1.user;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/hinccvi/go-ddd/proto";
+
+service UserService {
+  rpc GetUser (GetUserRequest) returns (GetUserReply) {}
+  rpc QueryUser (QueryUserRequest) returns (QueryUserReply) {}
+  rpc CreateUser (CreateUserRequest) returns (google.protobuf.Empty) {}
+  rpc UpdateUser (UpdateUserRequest) returns (google.protobuf.Empty) {}
+  rpc DeleteUser (DeleteUserRequest) returns (google.protobuf.Empty) {}
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string password = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  google.protobuf.Timestamp deleted_at = 6;
+}
+
+message GetUserRequest {
+  string id = 1 [(validate.rules).string.uuid = true];
+}
+
+message GetUserReply {
+  User user = 1;
+}
+
+message QueryUserRequest {
+  int32 page = 1 [(validate.rules).int32 = {ignore_empty:true, gte:1}];
+  int32 size = 2 [(validate.rules).int32 = {ignore_empty:true, gte:1}];
+}
+
+message QueryUserReply {
+  repeated User users = 1;
+  int64 total = 2;
+}
+
+message CreateUserRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message UpdateUserRequest {
+  string id = 1 [(validate.rules).string.uuid = true];
+  string username = 2;
+  string password = 3;
+}
+
+message DeleteUserRequest {
+  string id = 1 [(validate.rules).string.uuid = true];
+}

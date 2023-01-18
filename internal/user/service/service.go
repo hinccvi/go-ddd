@@ -19,11 +19,11 @@ import (
 type (
 	// Service encapsulates usecase logic for user.
 	Service interface {
-		Get(ctx context.Context, id uuid.UUID) (entity.User, error)
-		Query(ctx context.Context, page, size int) ([]entity.User, int64, error)
-		Create(ctx context.Context, u entity.User) error
-		Update(ctx context.Context, u entity.User) error
-		Delete(ctx context.Context, id uuid.UUID) error
+		GetUser(ctx context.Context, req GetUserRequest) (entity.User, error)
+		QueryUser(ctx context.Context, req QueryUserRequest) ([]entity.User, int64, error)
+		CreateUser(ctx context.Context, req CreateUserRequest) error
+		UpdateUser(ctx context.Context, req UpdateUserRequest) error
+		DeleteUser(ctx context.Context, req DeleteUserRequest) error
 	}
 
 	service struct {
@@ -34,7 +34,7 @@ type (
 	}
 
 	GetUserRequest struct {
-		ID *uuid.UUID `param:"id" validate:"required"`
+		ID uuid.UUID `param:"id" validate:"required"`
 	}
 
 	QueryUserRequest struct {
@@ -54,7 +54,7 @@ type (
 	}
 
 	DeleteUserRequest struct {
-		ID *uuid.UUID `param:"id" validate:"required"`
+		ID uuid.UUID `param:"id" validate:"required"`
 	}
 )
 
@@ -63,11 +63,11 @@ func New(rds redis.Client, repo repository.Repository, logger log.Logger, timeou
 	return service{rds, repo, logger, timeout}
 }
 
-func (s service) Get(ctx context.Context, id uuid.UUID) (entity.User, error) {
+func (s service) GetUser(ctx context.Context, req GetUserRequest) (entity.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	item, err := s.repo.Get(ctx, id)
+	item, err := s.repo.Get(ctx, req.ID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return entity.User{}, sql.ErrNoRows
@@ -78,11 +78,11 @@ func (s service) Get(ctx context.Context, id uuid.UUID) (entity.User, error) {
 	return item, nil
 }
 
-func (s service) Query(ctx context.Context, page, size int) ([]entity.User, int64, error) {
+func (s service) QueryUser(ctx context.Context, req QueryUserRequest) ([]entity.User, int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	items, err := s.repo.Query(ctx, page, size)
+	items, err := s.repo.Query(ctx, req.Page, req.Size)
 	if err != nil {
 		return []entity.User{}, 0, fmt.Errorf("[Query] internal error: %w", err)
 	}
@@ -95,27 +95,24 @@ func (s service) Query(ctx context.Context, page, size int) ([]entity.User, int6
 	return items, total, nil
 }
 
-func (s service) Count(ctx context.Context) (int64, error) {
+func (s service) CreateUser(ctx context.Context, req CreateUserRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	return s.repo.Count(ctx)
-}
-
-func (s service) Create(ctx context.Context, u entity.User) error {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	if u.Username == "" || u.Password == "" {
+	if req.Username == "" || req.Password == "" {
 		return fmt.Errorf("[Create] internal error: %w", errs.ErrEmptyField)
 	}
 
-	hashedPassword, err := tools.Bcrypt(u.Password)
+	hashedPassword, err := tools.Bcrypt(req.Password)
 	if err != nil {
 		return fmt.Errorf("[Create] internal error: %w", err)
 	}
-	u.Password = hashedPassword
+	req.Password = hashedPassword
 
+	u := entity.User{
+		Username: req.Username,
+		Password: req.Password,
+	}
 	if err := s.repo.Create(ctx, u); err != nil {
 		return fmt.Errorf("[Create] internal error: %w", err)
 	}
@@ -123,19 +120,24 @@ func (s service) Create(ctx context.Context, u entity.User) error {
 	return nil
 }
 
-func (s service) Update(ctx context.Context, u entity.User) error {
+func (s service) UpdateUser(ctx context.Context, req UpdateUserRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if u.Password != "" {
-		hashedPassword, err := tools.Bcrypt(u.Password)
+	if req.Password != "" {
+		hashedPassword, err := tools.Bcrypt(req.Password)
 		if err != nil {
 			return fmt.Errorf("[Update] internal error: %w", err)
 		}
 
-		u.Password = hashedPassword
+		req.Password = hashedPassword
 	}
 
+	u := entity.User{
+		ID:       req.ID,
+		Username: req.Username,
+		Password: req.Password,
+	}
 	if err := s.repo.Update(ctx, u); err != nil {
 		return fmt.Errorf("[Update] internal error: %w", err)
 	}
@@ -143,11 +145,11 @@ func (s service) Update(ctx context.Context, u entity.User) error {
 	return nil
 }
 
-func (s service) Delete(ctx context.Context, id uuid.UUID) error {
+func (s service) DeleteUser(ctx context.Context, req DeleteUserRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if err := s.repo.Delete(ctx, id); err != nil {
+	if err := s.repo.Delete(ctx, req.ID); err != nil {
 		return fmt.Errorf("[Delete] internal error: %w", err)
 	}
 

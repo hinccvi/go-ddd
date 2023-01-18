@@ -8,7 +8,7 @@ import (
 	"github.com/hinccvi/go-ddd/internal/config"
 )
 
-func Connect(ctx context.Context, cfg config.Config) (redis.Client, error) {
+func Connect(ctx context.Context, cfg *config.Config) (redis.Client, error) {
 	rds := redis.NewClient(
 		&redis.Options{
 			Addr: fmt.Sprintf("%s:%d",

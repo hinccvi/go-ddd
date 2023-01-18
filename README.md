@@ -23,9 +23,9 @@ The kit provides the following features right out of the box:
 The kit uses the following Go packages which can be easily replaced with your own favorite ones
 since their usages are mostly localized and abstracted.
 
-- Routing: [echo](https://github.com/labstack/echo)
+- Routing: [grpc](https://github.com/grpc/grpc-go)
 - Database access: [sqlx](https://github.com/jmoiron/sqlx)
 - Database migration: [golang-migrate](https://github.com/golang-migrate/migrate)
-- Data validation: [validator](https://github.com/go-playground/validator)
+- Data validation: [protoc-gen-validate](https://github.com/bufbuild/protoc-gen-validate)
 - Logging: [zap](https://github.com/uber-go/zap)
 - JWT: [jwt-go](https://github.com/golang-jwt/jwt)

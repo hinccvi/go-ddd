@@ -1,6 +1,8 @@
 app:
   name: sample-app.com
-  port: 8022
+  port: 50051
+  cert: "./testdata/x509/cert.pem"
+  key: "./testdata/x509/key.pem"
 
 context:
   timeout: 2

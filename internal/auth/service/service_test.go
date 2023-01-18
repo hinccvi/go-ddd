@@ -48,10 +48,11 @@ func TestLogin(t *testing.T) {
 			Username: "user",
 			Password: "secret",
 		}
-		var resp loginResponse
-		resp, err = s.Login(context.TODO(), req)
+		var accessToken, refreshToken string
+		accessToken, refreshToken, err = s.Login(context.TODO(), req)
 		assert.NoError(t, err)
-		assert.NotNil(t, resp)
+		assert.NotEqual(t, "", accessToken)
+		assert.NotEqual(t, "", refreshToken)
 	})
 
 	t.Run("fail: incorrect credential", func(t *testing.T) {
@@ -69,7 +70,7 @@ func TestLogin(t *testing.T) {
 			Username: "user",
 			Password: "secret",
 		}
-		_, err = s.Login(context.TODO(), req)
+		_, _, err = s.Login(context.TODO(), req)
 		assert.Error(t, err)
 	})
 
@@ -81,7 +82,7 @@ func TestLogin(t *testing.T) {
 			Username: "user",
 			Password: "secret",
 		}
-		_, err = s.Login(context.TODO(), req)
+		_, _, err = s.Login(context.TODO(), req)
 		assert.Error(t, err)
 	})
 
@@ -95,9 +96,8 @@ func TestLogin(t *testing.T) {
 		repo.On("GetUserByUsername", mock.Anything, "user").Return(mockGetUserByUsername, nil)
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
-		i := 0
-		for i < 6 {
-			_, err = s.Login(context.TODO(), LoginRequest{
+		for i := 0; i < 6; i++ {
+			_, _, err = s.Login(context.TODO(), LoginRequest{
 				Username: "user",
 				Password: "secret",
 			})
@@ -107,8 +107,6 @@ func TestLogin(t *testing.T) {
 			if assert.Error(t, err) && i < 5 {
 				assert.Equal(t, errs.ErrInvalidCredentials, err)
 			}
-
-			i++
 		}
 
 		assert.Equal(t, errs.ErrMaxAttempt, errors.Unwrap(err))
@@ -145,19 +143,19 @@ func TestRefresh(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
-		var loginResp loginResponse
-		loginResp, err = s.Login(context.TODO(), LoginRequest{
+		var accessToken, refreshToken string
+		accessToken, refreshToken, err = s.Login(context.TODO(), LoginRequest{
 			Username: "user",
 			Password: "secret",
 		})
 
-		var refreshResp refreshResponse
-		refreshResp, err = s.Refresh(context.TODO(), RefreshTokenRequest{
-			AccessToken:  loginResp.AccessToken,
-			RefreshToken: loginResp.RefreshToken,
+		var newAccessToken string
+		newAccessToken, err = s.Refresh(context.TODO(), RefreshTokenRequest{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
 		})
 		assert.NoError(t, err)
-		assert.NotNil(t, refreshResp)
+		assert.NotEqual(t, "", newAccessToken)
 	})
 
 	t.Run("fail: token not found in cache", func(t *testing.T) {
@@ -187,15 +185,15 @@ func TestRefresh(t *testing.T) {
 
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
-		var loginResp loginResponse
-		loginResp, err = s.Login(context.TODO(), LoginRequest{
+		var accessToken, refreshToken string
+		accessToken, refreshToken, err = s.Login(context.TODO(), LoginRequest{
 			Username: "user",
 			Password: "secret",
 		})
 
 		_, err = s.Refresh(context.TODO(), RefreshTokenRequest{
-			AccessToken:  loginResp.AccessToken,
-			RefreshToken: loginResp.RefreshToken,
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
 		})
 		assert.Error(t, err)
 		assert.Equal(t, errs.ErrConditionNotFulfil, tools.UnwrapRecursive(err))
@@ -204,15 +202,15 @@ func TestRefresh(t *testing.T) {
 	t.Run("fail: invalid access token", func(t *testing.T) {
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
-		var loginResp loginResponse
-		loginResp, err = s.Login(context.TODO(), LoginRequest{
+		var accessToken, refreshToken string
+		accessToken, refreshToken, err = s.Login(context.TODO(), LoginRequest{
 			Username: "user",
 			Password: "secret",
 		})
 
 		_, err = s.Refresh(context.TODO(), RefreshTokenRequest{
-			AccessToken:  loginResp.AccessToken + "x",
-			RefreshToken: loginResp.RefreshToken,
+			AccessToken:  accessToken + "x",
+			RefreshToken: refreshToken,
 		})
 		assert.Error(t, err)
 		assert.Equal(t, jwt.ErrSignatureInvalid, tools.UnwrapRecursive(err))
@@ -221,15 +219,15 @@ func TestRefresh(t *testing.T) {
 	t.Run("fail: invalid refresh token", func(t *testing.T) {
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
-		var loginResp loginResponse
-		loginResp, err = s.Login(context.TODO(), LoginRequest{
+		var accessToken, refreshToken string
+		accessToken, refreshToken, err = s.Login(context.TODO(), LoginRequest{
 			Username: "user",
 			Password: "secret",
 		})
 
 		_, err = s.Refresh(context.TODO(), RefreshTokenRequest{
-			AccessToken:  loginResp.AccessToken,
-			RefreshToken: loginResp.RefreshToken + "x",
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken + "x",
 		})
 		assert.Error(t, err)
 		assert.Equal(t, jwt.ErrSignatureInvalid, tools.UnwrapRecursive(err))
@@ -240,7 +238,7 @@ func TestRefresh(t *testing.T) {
 
 		mr.Close()
 
-		_, err = s.Login(context.TODO(), LoginRequest{
+		_, _, err = s.Login(context.TODO(), LoginRequest{
 			Username: "user",
 			Password: "secret",
 		})
@@ -250,8 +248,8 @@ func TestRefresh(t *testing.T) {
 	t.Run("fail: redis error", func(t *testing.T) {
 		s := service{&cfg, rds, logger, &repo, 2 * time.Second}
 
-		var loginResp loginResponse
-		loginResp, err = s.Login(context.TODO(), LoginRequest{
+		var accessToken, refreshToken string
+		accessToken, refreshToken, err = s.Login(context.TODO(), LoginRequest{
 			Username: "user",
 			Password: "secret",
 		})
@@ -259,8 +257,8 @@ func TestRefresh(t *testing.T) {
 		mr.Close()
 
 		_, err = s.Refresh(context.TODO(), RefreshTokenRequest{
-			AccessToken:  loginResp.AccessToken,
-			RefreshToken: loginResp.RefreshToken,
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
 		})
 		assert.Error(t, err)
 	})

@@ -21,7 +21,7 @@ type APITestCase struct {
 	WantResponse       string
 }
 
-// Endpoint tests an HTTP endpoint using the given APITestCase spec.
+// Endpoint tests an GRPC endpoint using the given APITestCase spec.
 func Endpoint(t *testing.T, router *echo.Echo, tc APITestCase) {
 	t.Run(tc.Name, func(t *testing.T) {
 		req := httptest.NewRequest(tc.Method, tc.URL, bytes.NewBufferString(tc.Body))

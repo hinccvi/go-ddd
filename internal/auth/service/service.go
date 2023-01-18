@@ -23,8 +23,8 @@ type (
 	Service interface {
 		// authenticate authenticates a user using username and password.
 		// It returns a JWT token if authentication succeeds. Otherwise, an error is returned.
-		Login(ctx context.Context, req LoginRequest) (loginResponse, error)
-		Refresh(ctx context.Context, req RefreshTokenRequest) (refreshResponse, error)
+		Login(ctx context.Context, req LoginRequest) (string, string, error)
+		Refresh(ctx context.Context, req RefreshTokenRequest) (string, error)
 	}
 
 	service struct {
@@ -49,16 +49,6 @@ type (
 	RefreshTokenRequest struct {
 		RefreshToken string `json:"refresh_token" validate:"required"`
 		AccessToken  string
-	}
-
-	// http response struct.
-	loginResponse struct {
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
-	}
-
-	refreshResponse struct {
-		RefreshToken string `json:"refresh_token"`
 	}
 
 	jwtType string
@@ -97,61 +87,60 @@ func New(
 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
 // Otherwise, an error is returned.
-func (s service) Login(ctx context.Context, req LoginRequest) (loginResponse, error) {
+func (s service) Login(ctx context.Context, req LoginRequest) (string, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	user, err := s.authenticate(ctx, req.Username, req.Password)
 	if err != nil {
-		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
+		return "", "", fmt.Errorf("[Login] internal error: %w", err)
 	}
 
 	accessToken, err := s.generateJWT(user.ID, user.Username, Access)
 	if err != nil {
-		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
+		return "", "", fmt.Errorf("[Login] internal error: %w", err)
 	}
 
 	refreshToken, err := s.generateJWT(user.ID, user.Username, Refresh)
 	if err != nil {
-		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
+		return "", "", fmt.Errorf("[Login] internal error: %w", err)
 	}
 
 	if err = s.cacheRefreshToken(ctx, user.ID.String(), refreshToken); err != nil {
-		return loginResponse{}, fmt.Errorf("[Login] internal error: %w", err)
+		return "", "", fmt.Errorf("[Login] internal error: %w", err)
 	}
 
-	return loginResponse{accessToken, refreshToken}, nil
+	return accessToken, refreshToken, nil
 }
 
-func (s service) Refresh(ctx context.Context, req RefreshTokenRequest) (refreshResponse, error) {
+func (s service) Refresh(ctx context.Context, req RefreshTokenRequest) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, err := s.parseRefreshToken(req.RefreshToken)
-	if err != nil {
-		return refreshResponse{}, fmt.Errorf("[Refresh] internal error: %w", err)
+	if _, err := s.parseRefreshToken(req.RefreshToken); err != nil {
+		return "", fmt.Errorf("[Refresh] internal error: %w", err)
 	}
 
 	accessClaims, err := s.parseAccessToken(req.AccessToken)
 	if err != nil {
-		return refreshResponse{}, fmt.Errorf("[Refresh] internal error: %w", err)
+		return "", fmt.Errorf("[Refresh] internal error: %w", err)
 	}
 
 	id, err := uuid.Parse(accessClaims.Subject)
 	if err != nil {
-		return refreshResponse{}, fmt.Errorf("[Refresh] internal error: %w", err)
+		return "", fmt.Errorf("[Refresh] internal error: %w", err)
 	}
 
 	if err = s.validateRefreshToken(ctx, id.String(), req.RefreshToken); err != nil {
-		return refreshResponse{}, fmt.Errorf("[Refresh] internal error: %w", err)
+		return "", fmt.Errorf("[Refresh] internal error: %w", err)
 	}
 
 	accessToken, err := s.generateJWT(id, accessClaims.UserName, Access)
 	if err != nil {
-		return refreshResponse{}, fmt.Errorf("[Refresh] internal error: %w", err)
+		return "", fmt.Errorf("[Refresh] internal error: %w", err)
 	}
 
-	return refreshResponse{accessToken}, nil
+	return accessToken, nil
 }
 
 // authenticate authenticates a user using username and password.

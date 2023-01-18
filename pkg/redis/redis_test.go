@@ -19,7 +19,7 @@ func TestConnect(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, reflect.DeepEqual(config.Config{}, cfg))
 
-	rds, err := Connect(context.TODO(), cfg)
+	rds, err := Connect(context.TODO(), &cfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, rds)
 }
