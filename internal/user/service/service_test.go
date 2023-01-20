@@ -120,7 +120,7 @@ func TestCreateUser(t *testing.T) {
 	t.Run("fail: empty field", func(t *testing.T) {
 		err = s.CreateUser(context.TODO(), CreateUserRequest{})
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrEmptyField, tools.UnwrapRecursive(err))
+		assert.Equal(t, errs.EmptyField.E(), tools.UnwrapRecursive(err))
 	})
 
 	t.Run("fail: db error", func(t *testing.T) {

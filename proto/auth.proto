@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package v1.auth;
 
-option go_package = "github.com/hinccvi/go-ddd/proto";
+option go_package = "github.com/hinccvi/go-ddd/proto/pb";
 
 service AuthService {
   rpc Login (LoginRequest) returns (LoginReply) {}

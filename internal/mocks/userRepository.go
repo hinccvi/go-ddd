@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hinccvi/go-ddd/internal/entity"
+	errs "github.com/hinccvi/go-ddd/internal/errors"
 )
 
 var ErrCRUD = errors.New("error crud")
@@ -17,7 +18,7 @@ type UserRepository struct {
 	Items []entity.User
 }
 
-func (m *UserRepository) Get(ctx context.Context, id uuid.UUID) (entity.User, error) {
+func (m *UserRepository) GetUser(ctx context.Context, id uuid.UUID) (entity.User, error) {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
 		return entity.User{}, ErrCRUD
 	}
@@ -36,11 +37,11 @@ func (m *UserRepository) Get(ctx context.Context, id uuid.UUID) (entity.User, er
 	return entity.User{}, sql.ErrNoRows
 }
 
-func (m *UserRepository) Count(ctx context.Context) (int64, error) {
+func (m *UserRepository) CountUser(ctx context.Context) (int64, error) {
 	return int64(len(m.Items)), nil
 }
 
-func (m *UserRepository) Query(ctx context.Context, page, size int) ([]entity.User, error) {
+func (m *UserRepository) QueryUser(ctx context.Context, page, size int) ([]entity.User, error) {
 	if page <= 0 || size <= 0 {
 		return []entity.User{}, ErrCRUD
 	}
@@ -56,9 +57,12 @@ func (m *UserRepository) Query(ctx context.Context, page, size int) ([]entity.Us
 	return users, nil
 }
 
-func (m *UserRepository) Create(ctx context.Context, u entity.User) error {
+func (m *UserRepository) CreateUser(ctx context.Context, u entity.User) error {
 	if u.Username == "error" {
 		return ErrCRUD
+	}
+	if u.Username == "" || u.Password == "" {
+		return errs.EmptyField.E()
 	}
 
 	id := uuid.New()
@@ -74,7 +78,7 @@ func (m *UserRepository) Create(ctx context.Context, u entity.User) error {
 	return nil
 }
 
-func (m *UserRepository) Update(ctx context.Context, u entity.User) error {
+func (m *UserRepository) UpdateUser(ctx context.Context, u entity.User) error {
 	if u.Username == "error" {
 		return ErrCRUD
 	}
@@ -104,7 +108,7 @@ func (m *UserRepository) Update(ctx context.Context, u entity.User) error {
 	return nil
 }
 
-func (m *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (m *UserRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	if reflect.DeepEqual(id, uuid.UUID{}) {
 		return ErrCRUD
 	}

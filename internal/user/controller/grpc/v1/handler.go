@@ -5,15 +5,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hinccvi/go-ddd/pkg/log"
-
-	"github.com/hinccvi/go-ddd/internal/user/service"
-	"github.com/hinccvi/go-ddd/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/hinccvi/go-ddd/internal/errors"
+	"github.com/hinccvi/go-ddd/internal/user/service"
+	"github.com/hinccvi/go-ddd/proto/pb"
 )
 
 type resource struct {
-	proto.UnimplementedUserServiceServer
+	pb.UnimplementedUserServiceServer
 	logger  log.Logger
 	service service.Service
 }
@@ -22,9 +23,9 @@ func RegisterHandlers(service service.Service, logger log.Logger) resource {
 	return resource{logger: logger, service: service}
 }
 
-func (r resource) GetUser(ctx context.Context, req *proto.GetUserRequest) (reply *proto.GetUserReply, err error) {
+func (r resource) GetUser(ctx context.Context, req *pb.GetUserRequest) (reply *pb.GetUserReply, err error) {
 	if err = req.Validate(); err != nil {
-		return &proto.GetUserReply{}, err
+		return
 	}
 
 	data := service.GetUserRequest{
@@ -32,20 +33,22 @@ func (r resource) GetUser(ctx context.Context, req *proto.GetUserRequest) (reply
 	}
 	userEntity, err := r.service.GetUser(ctx, data)
 	if err != nil {
-		return &proto.GetUserReply{}, err
+		return
 	}
 
-	reply.User = &proto.User{
-		Username:  userEntity.Username,
-		CreatedAt: timestamppb.New(userEntity.CreatedAt),
+	reply = &pb.GetUserReply{
+		User: &pb.User{
+			Username:  userEntity.Username,
+			CreatedAt: timestamppb.New(userEntity.CreatedAt),
+		},
 	}
 
-	return reply, nil
+	return
 }
 
-func (r resource) QueryUser(ctx context.Context, req *proto.QueryUserRequest) (reply *proto.QueryUserReply, err error) {
+func (r resource) QueryUser(ctx context.Context, req *pb.QueryUserRequest) (reply *pb.QueryUserReply, err error) {
 	if err = req.Validate(); err != nil {
-		return &proto.QueryUserReply{}, err
+		return
 	}
 
 	data := service.QueryUserRequest{
@@ -54,42 +57,47 @@ func (r resource) QueryUser(ctx context.Context, req *proto.QueryUserRequest) (r
 	}
 	users, total, err := r.service.QueryUser(ctx, data)
 	if err != nil {
-		return &proto.QueryUserReply{}, err
+		return
 	}
 
-	var pbUsers []*proto.User
+	var pbUsers []*pb.User
 	for _, user := range users {
-		pbUsers = append(pbUsers, &proto.User{
+		pbUsers = append(pbUsers, &pb.User{
 			Username:  user.Username,
 			CreatedAt: timestamppb.New(user.CreatedAt),
 		})
 	}
 
-	reply.Users = pbUsers
-	reply.Total = total
+	reply = &pb.QueryUserReply{
+		Users: pbUsers,
+		Total: total,
+	}
 
-	return reply, nil
+	return
 }
 
-func (r resource) CreateUser(ctx context.Context, req *proto.CreateUserRequest) (*emptypb.Empty, error) {
-	if err := req.Validate(); err != nil {
-		return nil, err
+func (r resource) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (e *emptypb.Empty, err error) {
+	if req.Username == "" || req.Password == "" {
+		err = errors.EmptyField.E()
+		return
 	}
 
 	data := service.CreateUserRequest{
 		Username: req.Username,
 		Password: req.Password,
 	}
-	if err := r.service.CreateUser(ctx, data); err != nil {
-		return nil, err
+	if err = r.service.CreateUser(ctx, data); err != nil {
+		return
 	}
 
-	return nil, nil
+	e = &emptypb.Empty{}
+
+	return
 }
 
-func (r resource) UpdateUser(ctx context.Context, req *proto.UpdateUserRequest) (*emptypb.Empty, error) {
-	if err := req.Validate(); err != nil {
-		return nil, err
+func (r resource) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (e *emptypb.Empty, err error) {
+	if err = req.Validate(); err != nil {
+		return
 	}
 
 	data := service.UpdateUserRequest{
@@ -97,24 +105,28 @@ func (r resource) UpdateUser(ctx context.Context, req *proto.UpdateUserRequest) 
 		Username: req.Username,
 		Password: req.Password,
 	}
-	if err := r.service.UpdateUser(ctx, data); err != nil {
-		return nil, err
+	if err = r.service.UpdateUser(ctx, data); err != nil {
+		return
 	}
 
-	return nil, nil
+	e = &emptypb.Empty{}
+
+	return
 }
 
-func (r resource) DeleteUser(ctx context.Context, req *proto.DeleteUserRequest) (*emptypb.Empty, error) {
-	if err := req.Validate(); err != nil {
-		return nil, err
+func (r resource) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (e *emptypb.Empty, err error) {
+	if err = req.Validate(); err != nil {
+		return
 	}
 
 	data := service.DeleteUserRequest{
 		ID: uuid.MustParse(req.Id),
 	}
-	if err := r.service.DeleteUser(ctx, data); err != nil {
-		return nil, err
+	if err = r.service.DeleteUser(ctx, data); err != nil {
+		return
 	}
 
-	return nil, nil
+	e = &emptypb.Empty{}
+
+	return
 }

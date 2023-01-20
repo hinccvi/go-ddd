@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package v1.healthcheck;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/hinccvi/go-ddd/proto/pb";
+
+service HealthcheckService {
+  rpc GetVersion (google.protobuf.Empty) returns (GetVersionReply) {}
+}
+
+message GetVersionReply {
+  string version = 1;
+}

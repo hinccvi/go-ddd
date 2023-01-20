@@ -148,7 +148,7 @@ func (s service) Refresh(ctx context.Context, req RefreshTokenRequest) (string, 
 func (s service) authenticate(ctx context.Context, username, password string) (entity.User, error) {
 	user, err := s.repo.GetUserByUsername(ctx, username)
 	if errors.Is(err, sql.ErrNoRows) {
-		return entity.User{}, errs.ErrInvalidCredentials
+		return entity.User{}, errs.InvalidCredential.E()
 	} else if err != nil {
 		return entity.User{}, err
 	}
@@ -158,7 +158,7 @@ func (s service) authenticate(ctx context.Context, username, password string) (e
 			return entity.User{}, fmt.Errorf("[authenticate] internal error: %w", err)
 		}
 
-		return entity.User{}, errs.ErrInvalidCredentials
+		return entity.User{}, errs.InvalidCredential.E()
 	}
 
 	return user, nil
@@ -199,14 +199,14 @@ func (s service) generateJWT(id uuid.UUID, username string, t jwtType) (string, 
 func (s service) parseRefreshToken(refreshToken string) (JWTCustomClaims, error) {
 	token, err := jwt.ParseWithClaims(refreshToken, &JWTCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errs.ErrInvalidJwt
+			return nil, errs.InvalidToken.E()
 		}
 
 		return []byte(s.cfg.Jwt.RefreshSigningKey), nil
 	})
 
 	if token == nil {
-		return JWTCustomClaims{}, errs.ErrInvalidJwt
+		return JWTCustomClaims{}, errs.InvalidToken.E()
 	}
 
 	if claims, ok := token.Claims.(*JWTCustomClaims); ok && token.Valid {
@@ -220,7 +220,7 @@ func (s service) parseRefreshToken(refreshToken string) (JWTCustomClaims, error)
 func (s service) parseAccessToken(accessToken string) (JWTCustomClaims, error) {
 	_, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errs.ErrInvalidJwt
+			return nil, errs.InvalidToken.E()
 		}
 
 		return []byte(s.cfg.Jwt.AccessSigningKey), nil
@@ -242,7 +242,7 @@ func (s service) parseAccessToken(accessToken string) (JWTCustomClaims, error) {
 
 	// only allow access token to be refresh just before expire time
 	if time.Until(claims.ExpiresAt.Time) > jwtRemainingTime {
-		return JWTCustomClaims{}, errs.ErrConditionNotFulfil
+		return JWTCustomClaims{}, errs.ConditionNotFulfilled.E()
 	}
 
 	return *claims, nil
@@ -265,7 +265,7 @@ func (s service) cacheIncorrectPassword(ctx context.Context, id string) error {
 		return fmt.Errorf("[cacheIncorrectPassword] internal error: %w", err)
 	default:
 		if val >= maxLoginAttempt {
-			return errs.ErrMaxAttempt
+			return errs.MaxLoginAttempt.E()
 		}
 
 		return s.rds.Incr(ctx, key).Err()
@@ -278,12 +278,12 @@ func (s service) validateRefreshToken(ctx context.Context, id, token string) err
 	val, err := s.rds.Get(ctx, key).Result()
 	switch {
 	case errors.Is(err, redis.Nil):
-		return errs.ErrInvalidRefreshToken
+		return errs.InvalidRefreshToken.E()
 	case err != nil:
 		return fmt.Errorf("[validateRefreshToken] internal error: %w", err)
 	default:
 		if token != val {
-			return errs.ErrInvalidRefreshToken
+			return errs.InvalidRefreshToken.E()
 		}
 
 		return nil

@@ -159,9 +159,8 @@ mockery: ## mock code autogenerator
 .PHONY: protoc
 protoc: ## compile protobuf file
 	@protoc \
-  -I . \
-  --go_out=. --go_opt=paths=source_relative \
-  --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-  --validate_out=lang=go,paths=source_relative:. \
+  --go_out=./proto/pb --go_opt=paths=source_relative \
+  --go-grpc_out=./proto/pb --go-grpc_opt=paths=source_relative \
+  --validate_out=lang=go,paths=source_relative:./proto/pb \
   -Iproto/ $$(find proto -iname "*.proto") \
   -I $$GOPATH/src/protoc-gen-validate/

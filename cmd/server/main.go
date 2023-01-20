@@ -10,17 +10,20 @@ import (
 	"syscall"
 	"time"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	v1AuthPB "github.com/hinccvi/go-ddd/internal/auth/controller/grpc/v1"
 	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
 	authService "github.com/hinccvi/go-ddd/internal/auth/service"
 	"github.com/hinccvi/go-ddd/internal/config"
+	healthcheckPB "github.com/hinccvi/go-ddd/internal/healthcheck/controller/grpc"
 	v1UserPB "github.com/hinccvi/go-ddd/internal/user/controller/grpc/v1"
 	userRepo "github.com/hinccvi/go-ddd/internal/user/repository"
 	userService "github.com/hinccvi/go-ddd/internal/user/service"
 	"github.com/hinccvi/go-ddd/pkg/db"
 	"github.com/hinccvi/go-ddd/pkg/log"
 	rds "github.com/hinccvi/go-ddd/pkg/redis"
-	"github.com/hinccvi/go-ddd/proto"
+	"github.com/hinccvi/go-ddd/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/examples/data"
@@ -77,7 +80,13 @@ func main() {
 	if err != nil {
 		logger.Fatalf("failed to generate credentials: %v", err)
 	}
-	opts = []grpc.ServerOption{grpc.Creds(creds)}
+	opts = []grpc.ServerOption{
+		grpc.Creds(creds),
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				grpc_recovery.UnaryServerInterceptor(),
+			)),
+	}
 
 	// timeout duration for each request
 	t := time.Duration(cfg.Context.Timeout) * time.Second
@@ -85,12 +94,17 @@ func main() {
 	// register grpc server
 	grpcServer := grpc.NewServer(opts...)
 
-	proto.RegisterAuthServiceServer(
+	pb.RegisterHealthcheckServiceServer(
+		grpcServer,
+		healthcheckPB.RegisterHandlers(Version),
+	)
+
+	pb.RegisterAuthServiceServer(
 		grpcServer,
 		v1AuthPB.RegisterHandlers(authService.New(&cfg, rds, authRepo.New(db, logger), logger, t), logger),
 	)
 
-	proto.RegisterUserServiceServer(
+	pb.RegisterUserServiceServer(
 		grpcServer,
 		v1UserPB.RegisterHandlers(userService.New(rds, userRepo.New(db, logger), logger, t), logger),
 	)

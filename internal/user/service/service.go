@@ -10,7 +10,6 @@ import (
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
 	"github.com/hinccvi/go-ddd/internal/entity"
-	errs "github.com/hinccvi/go-ddd/internal/errors"
 	"github.com/hinccvi/go-ddd/internal/user/repository"
 	"github.com/hinccvi/go-ddd/pkg/log"
 	"github.com/hinccvi/go-ddd/tools"
@@ -67,12 +66,12 @@ func (s service) GetUser(ctx context.Context, req GetUserRequest) (entity.User, 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	item, err := s.repo.Get(ctx, req.ID)
+	item, err := s.repo.GetUser(ctx, req.ID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return entity.User{}, sql.ErrNoRows
 	case err != nil:
-		return entity.User{}, fmt.Errorf("[Get] internal error: %w", err)
+		return entity.User{}, fmt.Errorf("[GetUser] internal error: %w", err)
 	}
 
 	return item, nil
@@ -82,14 +81,14 @@ func (s service) QueryUser(ctx context.Context, req QueryUserRequest) ([]entity.
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	items, err := s.repo.Query(ctx, req.Page, req.Size)
+	items, err := s.repo.QueryUser(ctx, req.Page, req.Size)
 	if err != nil {
-		return []entity.User{}, 0, fmt.Errorf("[Query] internal error: %w", err)
+		return []entity.User{}, 0, fmt.Errorf("[QueryUser] internal error: %w", err)
 	}
 
-	total, err := s.repo.Count(ctx)
+	total, err := s.repo.CountUser(ctx)
 	if err != nil {
-		return []entity.User{}, 0, fmt.Errorf("[Query] internal error: %w", err)
+		return []entity.User{}, 0, fmt.Errorf("[QueryUser] internal error: %w", err)
 	}
 
 	return items, total, nil
@@ -99,13 +98,9 @@ func (s service) CreateUser(ctx context.Context, req CreateUserRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if req.Username == "" || req.Password == "" {
-		return fmt.Errorf("[Create] internal error: %w", errs.ErrEmptyField)
-	}
-
 	hashedPassword, err := tools.Bcrypt(req.Password)
 	if err != nil {
-		return fmt.Errorf("[Create] internal error: %w", err)
+		return fmt.Errorf("[CreateUser] internal error: %w", err)
 	}
 	req.Password = hashedPassword
 
@@ -113,8 +108,8 @@ func (s service) CreateUser(ctx context.Context, req CreateUserRequest) error {
 		Username: req.Username,
 		Password: req.Password,
 	}
-	if err := s.repo.Create(ctx, u); err != nil {
-		return fmt.Errorf("[Create] internal error: %w", err)
+	if err := s.repo.CreateUser(ctx, u); err != nil {
+		return fmt.Errorf("[CreateUser] internal error: %w", err)
 	}
 
 	return nil
@@ -127,7 +122,7 @@ func (s service) UpdateUser(ctx context.Context, req UpdateUserRequest) error {
 	if req.Password != "" {
 		hashedPassword, err := tools.Bcrypt(req.Password)
 		if err != nil {
-			return fmt.Errorf("[Update] internal error: %w", err)
+			return fmt.Errorf("[UpdateUser] internal error: %w", err)
 		}
 
 		req.Password = hashedPassword
@@ -138,8 +133,8 @@ func (s service) UpdateUser(ctx context.Context, req UpdateUserRequest) error {
 		Username: req.Username,
 		Password: req.Password,
 	}
-	if err := s.repo.Update(ctx, u); err != nil {
-		return fmt.Errorf("[Update] internal error: %w", err)
+	if err := s.repo.UpdateUser(ctx, u); err != nil {
+		return fmt.Errorf("[UpdateUser] internal error: %w", err)
 	}
 
 	return nil
@@ -149,8 +144,8 @@ func (s service) DeleteUser(ctx context.Context, req DeleteUserRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if err := s.repo.Delete(ctx, req.ID); err != nil {
-		return fmt.Errorf("[Delete] internal error: %w", err)
+	if err := s.repo.DeleteUser(ctx, req.ID); err != nil {
+		return fmt.Errorf("[DeleteUser] internal error: %w", err)
 	}
 
 	return nil

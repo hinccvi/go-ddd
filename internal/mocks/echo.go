@@ -5,14 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/hinccvi/go-ddd/pkg/log"
-
-	errs "github.com/hinccvi/go-ddd/internal/errors"
-	m "github.com/hinccvi/go-ddd/internal/middleware"
-	"github.com/labstack/echo/v4"
 )
 
 type (
@@ -22,18 +16,19 @@ type (
 	}
 )
 
-// Router creates a echo router for testing APIs.
-func Router(logger log.Logger) *echo.Echo {
-	e := echo.New()
-
-	e.HTTPErrorHandler = m.NewHTTPErrorHandler(errs.GetStatusCodeMap()).Handler(logger)
-
-	e.Validator = &m.CustomValidator{Validator: validator.New()}
-
-	return e
-}
-
-// AuthHeader returns an HTTP header that can pass the authentication check by MockAuthHandler.
+// // Router creates a echo router for testing APIs.
+//
+//	func Router(logger log.Logger) *echo.Echo {
+//		e := echo.New()
+//
+//		e.HTTPErrorHandler = m.NewHTTPErrorHandler(errs.GetStatusCodeMap()).Handler(logger)
+//
+//		e.Validator = &m.CustomValidator{Validator: validator.New()}
+//
+//		return e
+//	}
+//
+// // AuthHeader returns an HTTP header that can pass the authentication check by MockAuthHandler.
 func AuthHeader(id, username string) http.Header {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(1 * time.Minute)

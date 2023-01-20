@@ -12,12 +12,12 @@ import (
 type (
 	// Repository encapsulates the logic to access users from the data source.
 	Repository interface {
-		Get(ctx context.Context, id uuid.UUID) (entity.User, error)
-		Count(ctx context.Context) (int64, error)
-		Query(ctx context.Context, page, size int) ([]entity.User, error)
-		Create(ctx context.Context, u entity.User) error
-		Update(ctx context.Context, u entity.User) error
-		Delete(ctx context.Context, id uuid.UUID) error
+		GetUser(ctx context.Context, id uuid.UUID) (entity.User, error)
+		CountUser(ctx context.Context) (int64, error)
+		QueryUser(ctx context.Context, page, size int) ([]entity.User, error)
+		CreateUser(ctx context.Context, u entity.User) error
+		UpdateUser(ctx context.Context, u entity.User) error
+		DeleteUser(ctx context.Context, id uuid.UUID) error
 	}
 	// repository persists albums in database.
 	repository struct {
@@ -44,7 +44,7 @@ func New(db *sqlx.DB, logger log.Logger) Repository {
 	return repository{db, logger}
 }
 
-func (r repository) Get(ctx context.Context, id uuid.UUID) (entity.User, error) {
+func (r repository) GetUser(ctx context.Context, id uuid.UUID) (entity.User, error) {
 	getUserStmt, err := r.db.PreparexContext(ctx, getUser)
 	if err != nil {
 		return entity.User{}, err
@@ -59,7 +59,7 @@ func (r repository) Get(ctx context.Context, id uuid.UUID) (entity.User, error) 
 	return user, nil
 }
 
-func (r repository) Count(ctx context.Context) (int64, error) {
+func (r repository) CountUser(ctx context.Context) (int64, error) {
 	var total int64
 	if err := r.db.GetContext(ctx, &total, countUser); err != nil {
 		return 0, err
@@ -68,7 +68,7 @@ func (r repository) Count(ctx context.Context) (int64, error) {
 	return total, nil
 }
 
-func (r repository) Query(ctx context.Context, page, size int) ([]entity.User, error) {
+func (r repository) QueryUser(ctx context.Context, page, size int) ([]entity.User, error) {
 	queryUserStmt, err := r.db.PreparexContext(ctx, queryUser)
 	if err != nil {
 		return []entity.User{}, err
@@ -83,7 +83,7 @@ func (r repository) Query(ctx context.Context, page, size int) ([]entity.User, e
 	return users, nil
 }
 
-func (r repository) Create(ctx context.Context, u entity.User) error {
+func (r repository) CreateUser(ctx context.Context, u entity.User) error {
 	createUserStmt, err := r.db.PrepareNamedContext(ctx, createUser)
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func (r repository) Create(ctx context.Context, u entity.User) error {
 	return nil
 }
 
-func (r repository) Update(ctx context.Context, u entity.User) error {
+func (r repository) UpdateUser(ctx context.Context, u entity.User) error {
 	query := updateUserUsername
 	if u.Password != "" {
 		query += updateUserPassword
@@ -117,7 +117,7 @@ func (r repository) Update(ctx context.Context, u entity.User) error {
 	return nil
 }
 
-func (r repository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r repository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	deleteUserStmt, err := r.db.PreparexContext(ctx, deleteUser)
 	if err != nil {
 		return err

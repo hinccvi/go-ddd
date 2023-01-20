@@ -105,11 +105,11 @@ func TestLogin(t *testing.T) {
 			err = errors.Unwrap(err)
 
 			if assert.Error(t, err) && i < 5 {
-				assert.Equal(t, errs.ErrInvalidCredentials, err)
+				assert.Equal(t, errs.InvalidCredential.E(), err)
 			}
 		}
 
-		assert.Equal(t, errs.ErrMaxAttempt, errors.Unwrap(err))
+		assert.Equal(t, errs.MaxLoginAttempt.E(), errors.Unwrap(err))
 	})
 }
 
@@ -177,7 +177,7 @@ func TestRefresh(t *testing.T) {
 			RefreshToken: refreshJWT,
 		})
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrInvalidRefreshToken, tools.UnwrapRecursive(err))
+		assert.Equal(t, errs.InvalidRefreshToken.E(), tools.UnwrapRecursive(err))
 	})
 
 	t.Run("fail: access token still valid", func(t *testing.T) {
@@ -196,7 +196,7 @@ func TestRefresh(t *testing.T) {
 			RefreshToken: refreshToken,
 		})
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrConditionNotFulfil, tools.UnwrapRecursive(err))
+		assert.Equal(t, errs.ConditionNotFulfilled.E(), tools.UnwrapRecursive(err))
 	})
 
 	t.Run("fail: invalid access token", func(t *testing.T) {

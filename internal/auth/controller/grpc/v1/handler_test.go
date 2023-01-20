@@ -2,69 +2,96 @@ package v1
 
 import (
 	"context"
+	"log"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/hinccvi/go-ddd/pkg/log"
-	"github.com/jmoiron/sqlx"
+	"github.com/google/uuid"
+	logger "github.com/hinccvi/go-ddd/pkg/log"
+	"github.com/hinccvi/go-ddd/tools"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
+	"github.com/stretchr/testify/mock"
 
 	authService "github.com/hinccvi/go-ddd/internal/auth/service"
 	"github.com/hinccvi/go-ddd/internal/config"
+	"github.com/hinccvi/go-ddd/internal/entity"
 	"github.com/hinccvi/go-ddd/internal/mocks"
-	"github.com/hinccvi/go-ddd/proto"
+	"github.com/hinccvi/go-ddd/proto/pb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/test/bufconn"
 
-	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var lis *bufconn.Listener
+var (
+	lis      *bufconn.Listener
+	client   pb.AuthServiceClient
+	password string
+)
 
 const bufSize = 1024 * 1024
 
 func TestMain(m *testing.M) {
-	l, _ := log.NewForTest()
-	logger := log.NewWithZap(l)
+	s := serverSetup()
+	defer s.GracefulStop()
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("server exited with error: %v", err)
+		}
+	}()
 
-	db, _, err := sqlmock.New()
-	if err != nil {
-		logger.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	conn := clientSetup()
+	defer conn.Close()
+	client = pb.NewAuthServiceClient(conn)
+
+	m.Run()
+}
+
+func clientSetup() *grpc.ClientConn {
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	if err != err {
+		log.Fatalf("failed to dial grpc server: %v", err)
 	}
-	dbx := sqlx.NewDb(db, "pgx")
-	defer db.Close()
+	return conn
+}
+
+func serverSetup() *grpc.Server {
+	l, _ := logger.NewForTest()
+	logger := logger.NewWithZap(l)
 
 	var cfg config.Config
-	cfg.Jwt.AccessExpiration = int(5 * time.Minute)
+	cfg.Jwt.AccessExpiration = int(10 * time.Second)
 	cfg.Jwt.AccessSigningKey = "secret1"
 	cfg.Jwt.RefreshExpiration = int(7 * time.Hour * 24)
 	cfg.Jwt.RefreshSigningKey = "secret2"
 
 	mnr, _ := miniredis.Run()
-	defer mnr.Close()
 
-	rds, err := mocks.Redis(mnr.Addr())
+	rds, _ := mocks.Redis(mnr.Addr())
 
 	lis = bufconn.Listen(bufSize)
 	s := grpc.NewServer()
-	proto.RegisterAuthServiceServer(
+
+	password, _ = tools.Bcrypt("secret")
+	mockGetUserByUsername := entity.User{
+		ID:       uuid.New(),
+		Username: "user",
+		Password: password,
+	}
+
+	var repo mocks.AuthRepository
+	repo.On("GetUserByUsername", mock.Anything, "user").Return(mockGetUserByUsername, nil)
+
+	pb.RegisterAuthServiceServer(
 		s,
-		RegisterHandlers(authService.New(&cfg, rds, authRepo.New(dbx, logger), logger, 5*time.Second), logger),
+		RegisterHandlers(authService.New(&cfg, rds, &repo, logger, 5*time.Second), logger),
 	)
 
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			logger.Fatalf("server exited with error: %v", err)
-		}
-	}()
-
-	defer s.GracefulStop()
-
-	m.Run()
+	return s
 }
 
 func bufDialer(context.Context, string) (net.Conn, error) {
@@ -73,15 +100,42 @@ func bufDialer(context.Context, string) (net.Conn, error) {
 
 func TestLogin(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
-	if err != err {
-		t.Fatalf("failed to dial grpc server: %v", err)
-	}
-	defer conn.Close()
-	c := proto.NewAuthServiceClient(conn)
+
+	t.Run("success", func(t *testing.T) {
+		reply, err := client.Login(ctx, &pb.LoginRequest{Username: "user", Password: "secret"})
+		assert.NoError(t, err)
+		assert.NotNil(t, reply)
+	})
+
+	t.Run("fail: incorrect credentials", func(t *testing.T) {
+		_, err := client.Login(ctx, &pb.LoginRequest{Username: "user", Password: "password"})
+		assert.Error(t, err)
+	})
 
 	t.Run("fail: empty param", func(t *testing.T) {
-		_, err := c.Login(ctx, &proto.LoginRequest{})
+		_, err := client.Login(ctx, &pb.LoginRequest{})
+		assert.Error(t, err)
+	})
+}
+
+func TestRefresh(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("success", func(t *testing.T) {
+		loginReply, err := client.Login(ctx, &pb.LoginRequest{Username: "user", Password: "secret"})
 		assert.NoError(t, err)
+		assert.NotNil(t, loginReply)
+
+		header := metadata.New(map[string]string{"Authorization": loginReply.AccessToken})
+		ctx = metadata.NewOutgoingContext(ctx, header)
+
+		reply, err := client.Refresh(ctx, &pb.RefreshRequest{RefreshToken: loginReply.RefreshToken})
+		assert.NoError(t, err)
+		assert.NotNil(t, reply)
+	})
+
+	t.Run("fail: empty param", func(t *testing.T) {
+		_, err := client.Refresh(ctx, &pb.RefreshRequest{})
+		assert.Error(t, err)
 	})
 }

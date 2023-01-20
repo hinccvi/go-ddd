@@ -18,7 +18,7 @@ import (
 
 var errConnectionRefused = errors.New("connection refused")
 
-func TestGet(t *testing.T) {
+func TestGetUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -39,7 +39,7 @@ func TestGet(t *testing.T) {
 		repo := New(dbx, logger)
 
 		var user entity.User
-		user, err = repo.Get(context.TODO(), id)
+		user, err = repo.GetUser(context.TODO(), id)
 		assert.NoError(t, err)
 		assert.EqualValues(t, id, user.ID)
 		assert.Equal(t, username, user.Username)
@@ -50,7 +50,7 @@ func TestGet(t *testing.T) {
 		mock.ExpectPrepare(regexp.QuoteMeta(getUser)).ExpectQuery().WithArgs(id).WillReturnError(sql.ErrNoRows)
 
 		repo := New(dbx, logger)
-		_, err = repo.Get(context.TODO(), id)
+		_, err = repo.GetUser(context.TODO(), id)
 		assert.Error(t, err)
 	})
 
@@ -58,12 +58,12 @@ func TestGet(t *testing.T) {
 		var id uuid.UUID
 		mock.ExpectPrepare(regexp.QuoteMeta(getUser)).ExpectQuery().WithArgs(id).WillReturnError(errConnectionRefused)
 		repo := New(dbx, logger)
-		_, err = repo.Get(context.TODO(), id)
+		_, err = repo.GetUser(context.TODO(), id)
 		assert.Error(t, err)
 	})
 }
 
-func TestCount(t *testing.T) {
+func TestCountUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -83,7 +83,7 @@ func TestCount(t *testing.T) {
 
 		repo := New(dbx, logger)
 		var total int64
-		total, err = repo.Count(context.TODO())
+		total, err = repo.CountUser(context.TODO())
 		assert.NoError(t, err)
 		assert.Equal(t, expectedTotal, total)
 	})
@@ -97,7 +97,7 @@ func TestCount(t *testing.T) {
 
 		repo := New(dbx, logger)
 		var total int64
-		total, err = repo.Count(context.TODO())
+		total, err = repo.CountUser(context.TODO())
 		assert.NoError(t, err)
 		assert.Equal(t, expectedTotal, total)
 	})
@@ -106,12 +106,12 @@ func TestCount(t *testing.T) {
 		mock.ExpectQuery(regexp.QuoteMeta(countUser)).WillReturnError(errConnectionRefused)
 
 		repo := New(dbx, logger)
-		_, err = repo.Count(context.TODO())
+		_, err = repo.CountUser(context.TODO())
 		assert.Error(t, err)
 	})
 }
 
-func TestQuery(t *testing.T) {
+func TestQueryUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -132,7 +132,7 @@ func TestQuery(t *testing.T) {
 
 		repo := New(dbx, logger)
 		var users []entity.User
-		users, err = repo.Query(context.TODO(), 1, 10)
+		users, err = repo.QueryUser(context.TODO(), 1, 10)
 		assert.NoError(t, err)
 		assert.Len(t, users, 3)
 	})
@@ -141,12 +141,12 @@ func TestQuery(t *testing.T) {
 		mock.ExpectPrepare(regexp.QuoteMeta(queryUser)).ExpectQuery().WithArgs(1, 10).WillReturnError(errConnectionRefused)
 
 		repo := New(dbx, logger)
-		_, err = repo.Query(context.TODO(), 1, 10)
+		_, err = repo.QueryUser(context.TODO(), 1, 10)
 		assert.Error(t, err)
 	})
 }
 
-func TestCreate(t *testing.T) {
+func TestCreateUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -168,7 +168,7 @@ func TestCreate(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		repo := New(dbx, logger)
-		err = repo.Create(context.TODO(), u)
+		err = repo.CreateUser(context.TODO(), u)
 		assert.NoError(t, err)
 	})
 
@@ -181,12 +181,12 @@ func TestCreate(t *testing.T) {
 			ExpectExec().WithArgs(u.Username, u.Password).WillReturnError(errConnectionRefused)
 
 		repo := New(dbx, logger)
-		err = repo.Create(context.TODO(), u)
+		err = repo.CreateUser(context.TODO(), u)
 		assert.Error(t, err)
 	})
 }
 
-func TestUpdate(t *testing.T) {
+func TestUpdateUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -209,7 +209,7 @@ func TestUpdate(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		repo := New(dbx, logger)
-		err = repo.Update(context.TODO(), u)
+		err = repo.UpdateUser(context.TODO(), u)
 		assert.NoError(t, err)
 	})
 
@@ -218,7 +218,7 @@ func TestUpdate(t *testing.T) {
 			WithArgs(u.ID, u.Username, u.Password).
 			WillReturnError(sql.ErrNoRows)
 		repo := New(dbx, logger)
-		err = repo.Update(context.TODO(), u)
+		err = repo.UpdateUser(context.TODO(), u)
 		assert.Error(t, err)
 	})
 
@@ -227,12 +227,12 @@ func TestUpdate(t *testing.T) {
 			WithArgs(u.ID, u.Username, u.Password).
 			WillReturnError(errConnectionRefused)
 		repo := New(dbx, logger)
-		err = repo.Update(context.TODO(), u)
+		err = repo.UpdateUser(context.TODO(), u)
 		assert.Error(t, err)
 	})
 }
 
-func TestDelete(t *testing.T) {
+func TestDeleteUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -251,7 +251,7 @@ func TestDelete(t *testing.T) {
 			WithArgs(id).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		repo := New(dbx, logger)
-		err = repo.Delete(context.TODO(), id)
+		err = repo.DeleteUser(context.TODO(), id)
 		assert.NoError(t, err)
 	})
 
@@ -259,7 +259,7 @@ func TestDelete(t *testing.T) {
 		id := uuid.New()
 		mock.ExpectPrepare(regexp.QuoteMeta(deleteUser)).ExpectExec().WithArgs(id).WillReturnError(sql.ErrNoRows)
 		repo := New(dbx, logger)
-		err = repo.Delete(context.TODO(), id)
+		err = repo.DeleteUser(context.TODO(), id)
 		assert.Error(t, err)
 	})
 
@@ -267,7 +267,7 @@ func TestDelete(t *testing.T) {
 		id := uuid.New()
 		mock.ExpectPrepare(regexp.QuoteMeta(deleteUser)).ExpectExec().WithArgs(id).WillReturnError(errConnectionRefused)
 		repo := New(dbx, logger)
-		err = repo.Delete(context.TODO(), id)
+		err = repo.DeleteUser(context.TODO(), id)
 		assert.Error(t, err)
 	})
 }
