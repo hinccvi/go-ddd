@@ -128,7 +128,7 @@ func TestQueryUser(t *testing.T) {
 			AddRow(uuid.NewString(), "user2").
 			AddRow(uuid.NewString(), "user3")
 
-		mock.ExpectPrepare(regexp.QuoteMeta(queryUser)).ExpectQuery().WithArgs(1, 10).WillReturnRows(rows)
+		mock.ExpectPrepare(regexp.QuoteMeta(queryUser)).ExpectQuery().WithArgs(10, 0).WillReturnRows(rows)
 
 		repo := New(dbx, logger)
 		var users []entity.User

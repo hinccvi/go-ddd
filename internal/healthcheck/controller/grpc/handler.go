@@ -17,6 +17,10 @@ func RegisterHandlers(version string) resource {
 	return resource{version: version}
 }
 
+func (r resource) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
+	return ctx, nil
+}
+
 func (r resource) GetVersion(ctx context.Context, empty *emptypb.Empty) (*pb.GetVersionReply, error) {
 	return &pb.GetVersionReply{Version: r.version}, nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/hinccvi/go-ddd/internal/config"
 	"github.com/hinccvi/go-ddd/internal/entity"
 	errs "github.com/hinccvi/go-ddd/internal/errors"
+	j "github.com/hinccvi/go-ddd/pkg/jwt"
 	"github.com/hinccvi/go-ddd/pkg/log"
 	"github.com/hinccvi/go-ddd/tools"
 )
@@ -33,11 +34,6 @@ type (
 		logger  log.Logger
 		repo    repository.Repository
 		timeout time.Duration
-	}
-
-	JWTCustomClaims struct {
-		UserName string `json:"username"`
-		jwt.RegisteredClaims
 	}
 
 	// http request struct.
@@ -180,9 +176,9 @@ func (s service) generateJWT(id uuid.UUID, username string, t jwtType) (string, 
 
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		&JWTCustomClaims{
-			username,
-			jwt.RegisteredClaims{
+		&j.CustomClaims{
+			UserName: username,
+			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    s.cfg.App.Name,
 				Subject:   id.String(),
 				Audience:  jwt.ClaimStrings{"all"},
@@ -196,28 +192,28 @@ func (s service) generateJWT(id uuid.UUID, username string, t jwtType) (string, 
 	return token.SignedString(signingKey)
 }
 
-func (s service) parseRefreshToken(refreshToken string) (JWTCustomClaims, error) {
-	token, err := jwt.ParseWithClaims(refreshToken, &JWTCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+func (s service) parseRefreshToken(refreshToken string) (j.CustomClaims, error) {
+	token, err := jwt.ParseWithClaims(refreshToken, &j.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errs.InvalidToken.E()
+			return nil, fmt.Errorf("[parseRefreshToken] internal error: invalid signature")
 		}
 
 		return []byte(s.cfg.Jwt.RefreshSigningKey), nil
 	})
 
 	if token == nil {
-		return JWTCustomClaims{}, errs.InvalidToken.E()
+		return j.CustomClaims{}, errs.InvalidToken.E()
 	}
 
-	if claims, ok := token.Claims.(*JWTCustomClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*j.CustomClaims); ok && token.Valid {
 		return *claims, nil
 	}
 
-	return JWTCustomClaims{}, fmt.Errorf("[parseRefreshToken] internal error: %w", err)
+	return j.CustomClaims{}, fmt.Errorf("[parseRefreshToken] internal error: %w", err)
 }
 
 // parseAccessToken extract value from validated token that failed on expired err.
-func (s service) parseAccessToken(accessToken string) (JWTCustomClaims, error) {
+func (s service) parseAccessToken(accessToken string) (j.CustomClaims, error) {
 	_, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errs.InvalidToken.E()
@@ -227,22 +223,22 @@ func (s service) parseAccessToken(accessToken string) (JWTCustomClaims, error) {
 	})
 
 	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
-		return JWTCustomClaims{}, fmt.Errorf("[parseAccessToken] internal error: %w", err)
+		return j.CustomClaims{}, fmt.Errorf("[parseAccessToken] internal error: %w", err)
 	}
 
-	token, _, err := new(jwt.Parser).ParseUnverified(accessToken, &JWTCustomClaims{})
+	token, _, err := new(jwt.Parser).ParseUnverified(accessToken, &j.CustomClaims{})
 	if err != nil {
-		return JWTCustomClaims{}, fmt.Errorf("[parseAccessToken] internal error: %w", err)
+		return j.CustomClaims{}, fmt.Errorf("[parseAccessToken] internal error: %w", err)
 	}
 
-	claims, ok := token.Claims.(*JWTCustomClaims)
+	claims, ok := token.Claims.(*j.CustomClaims)
 	if !ok {
-		return JWTCustomClaims{}, fmt.Errorf("[parseAccessToken] internal error: %w", err)
+		return j.CustomClaims{}, fmt.Errorf("[parseAccessToken] internal error: %w", err)
 	}
 
 	// only allow access token to be refresh just before expire time
 	if time.Until(claims.ExpiresAt.Time) > jwtRemainingTime {
-		return JWTCustomClaims{}, errs.ConditionNotFulfilled.E()
+		return j.CustomClaims{}, errs.ConditionNotFulfilled.E()
 	}
 
 	return *claims, nil

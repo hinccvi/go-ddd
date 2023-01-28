@@ -38,6 +38,7 @@ func (r resource) GetUser(ctx context.Context, req *pb.GetUserRequest) (reply *p
 
 	reply = &pb.GetUserReply{
 		User: &pb.User{
+			Id:        userEntity.ID.String(),
 			Username:  userEntity.Username,
 			CreatedAt: timestamppb.New(userEntity.CreatedAt),
 		},
@@ -63,6 +64,7 @@ func (r resource) QueryUser(ctx context.Context, req *pb.QueryUserRequest) (repl
 	var pbUsers []*pb.User
 	for _, user := range users {
 		pbUsers = append(pbUsers, &pb.User{
+			Id:        user.ID.String(),
 			Username:  user.Username,
 			CreatedAt: timestamppb.New(user.CreatedAt),
 		})

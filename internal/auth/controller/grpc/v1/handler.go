@@ -21,6 +21,10 @@ func RegisterHandlers(service service.Service, logger log.Logger) resource {
 	return resource{logger: logger, service: service}
 }
 
+func (r resource) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
+	return ctx, nil
+}
+
 func (r resource) Login(ctx context.Context, req *pb.LoginRequest) (reply *pb.LoginReply, err error) {
 	if req.Username == "" || req.Password == "" {
 		err = errors.EmptyField.E()

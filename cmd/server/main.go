@@ -11,12 +11,14 @@ import (
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	v1AuthPB "github.com/hinccvi/go-ddd/internal/auth/controller/grpc/v1"
 	authRepo "github.com/hinccvi/go-ddd/internal/auth/repository"
 	authService "github.com/hinccvi/go-ddd/internal/auth/service"
 	"github.com/hinccvi/go-ddd/internal/config"
 	healthcheckPB "github.com/hinccvi/go-ddd/internal/healthcheck/controller/grpc"
+	"github.com/hinccvi/go-ddd/internal/middleware"
 	v1UserPB "github.com/hinccvi/go-ddd/internal/user/controller/grpc/v1"
 	userRepo "github.com/hinccvi/go-ddd/internal/user/repository"
 	userService "github.com/hinccvi/go-ddd/internal/user/service"
@@ -80,10 +82,14 @@ func main() {
 	if err != nil {
 		logger.Fatalf("failed to generate credentials: %v", err)
 	}
+
+	mj := middleware.JWTKey(cfg.Jwt.AccessSigningKey)
+
 	opts = []grpc.ServerOption{
 		grpc.Creds(creds),
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
+				grpc_auth.UnaryServerInterceptor(mj.Auth),
 				grpc_recovery.UnaryServerInterceptor(),
 			)),
 	}

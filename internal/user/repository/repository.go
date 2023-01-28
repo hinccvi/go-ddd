@@ -26,11 +26,10 @@ type (
 	}
 )
 
-//nolint:gosec //false positive
 const (
-	getUser             string = `SELECT id, username FROM "user" WHERE id = $1 AND deleted_at IS NULL LIMIT 1`
+	getUser             string = `SELECT id, username, created_at FROM "user" WHERE id = $1 AND deleted_at IS NULL LIMIT 1`
 	countUser           string = `SELECT COUNT(id) FROM "user"`
-	queryUser           string = `SELECT id, username FROM "user" ORDER BY username LIMIT($1) OFFSET($2)`
+	queryUser           string = `SELECT id, username, created_at FROM "user" ORDER BY username LIMIT($1) OFFSET($2)`
 	createUser          string = `INSERT INTO "user" (username, password) VALUES (:username, :password)`
 	updateUserUsername  string = `UPDATE "user" SET username = VARCHAR(:username)`
 	updateUserPassword  string = `, password = VARCHAR(:password)`
@@ -76,7 +75,7 @@ func (r repository) QueryUser(ctx context.Context, page, size int) ([]entity.Use
 	defer queryUserStmt.Close()
 
 	var users []entity.User
-	if err = queryUserStmt.SelectContext(ctx, &users, page, size); err != nil {
+	if err = queryUserStmt.SelectContext(ctx, &users, size, (page-1)*size); err != nil {
 		return []entity.User{}, err
 	}
 
