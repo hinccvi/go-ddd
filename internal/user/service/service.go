@@ -116,7 +116,7 @@ func (s service) Create(ctx context.Context, u entity.User) error {
 	}
 	u.Password = hashedPassword
 
-	if err := s.repo.Create(ctx, u); err != nil {
+	if err = s.repo.Create(ctx, u); err != nil {
 		return fmt.Errorf("[Create] internal error: %w", err)
 	}
 

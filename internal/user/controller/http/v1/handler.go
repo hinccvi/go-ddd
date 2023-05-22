@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/hinccvi/go-ddd/internal/entity"
 	"github.com/hinccvi/go-ddd/internal/user/service"
@@ -41,7 +40,7 @@ func (r resource) Get(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Success, user)
+	return tools.JSONRespOk(c, user)
 }
 
 func (r resource) Query(c echo.Context) error {
@@ -63,10 +62,8 @@ func (r resource) Query(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSON(
+	return tools.JSONRespOk(
 		c,
-		http.StatusOK,
-		tools.Success,
 		struct {
 			List  []entity.User `json:"list"`
 			Total int64         `json:"total"`
@@ -90,7 +87,7 @@ func (r resource) Create(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Created, nil)
+	return tools.JSONRespOk(c, nil)
 }
 
 func (r resource) Update(c echo.Context) error {
@@ -108,7 +105,7 @@ func (r resource) Update(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Updated, nil)
+	return tools.JSONRespOk(c, nil)
 }
 
 func (r resource) Delete(c echo.Context) error {
@@ -121,5 +118,5 @@ func (r resource) Delete(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Deleted, nil)
+	return tools.JSONRespOk(c, nil)
 }

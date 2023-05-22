@@ -15,7 +15,7 @@
 vendor/
 
 # Local config
-dev.yml
+local.yml
 
 # Ide config
 .vscode

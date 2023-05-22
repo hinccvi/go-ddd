@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"net/http"
 	"strings"
 
 	"github.com/hinccvi/go-ddd/internal/auth/service"
@@ -38,7 +37,7 @@ func (r resource) login(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Success, res)
+	return tools.JSONRespOk(c, res)
 }
 
 func (r resource) refresh(c echo.Context) error {
@@ -65,5 +64,5 @@ func (r resource) refresh(c echo.Context) error {
 		return err
 	}
 
-	return tools.JSON(c, http.StatusOK, tools.Success, &res)
+	return tools.JSONRespOk(c, &res)
 }

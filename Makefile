@@ -53,7 +53,7 @@ build:  ## build the arm API server binary
 	CGO_ENABLED=0 go build ${LDFLAGS} -a -o server $(MODULE)/cmd/server
 
 build-amd64:  ## build the amd64 API server binary
-	CGO_ENABLED=0 GOARCH=amd64 go build ${LDFLAGS} -a -o server $(MODULE)/cmd/server
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -a -o server $(MODULE)/cmd/server
 
 .PHONY: build-docker
 build-docker: ## build the program as a arm docker image

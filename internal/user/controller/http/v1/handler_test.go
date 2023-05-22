@@ -81,7 +81,7 @@ func TestHandler(t *testing.T) {
 			Body:         `{"username": "user","password": "secret"}`,
 			Header:       header,
 			WantStatus:   http.StatusOK,
-			WantResponse: `*"message":"created"*`,
+			WantResponse: `*"message":"success"*`,
 		},
 		{
 			Name:         "create ok count",
@@ -114,7 +114,7 @@ func TestHandler(t *testing.T) {
 			Body:         fmt.Sprintf(`{"id":"%s","username": "newuser","password": "newsecret"}`, id.String()),
 			Header:       header,
 			WantStatus:   http.StatusOK,
-			WantResponse: `*"message":"updated"*`,
+			WantResponse: `*"message":"success"*`,
 		},
 		{
 			Name:       "update verify",
@@ -152,7 +152,7 @@ func TestHandler(t *testing.T) {
 			URL:          fmt.Sprintf("/v1/user/%s", id.String()),
 			Header:       header,
 			WantStatus:   http.StatusOK,
-			WantResponse: `*"message":"deleted"*`,
+			WantResponse: `*"message":"success"*`,
 		},
 		{
 			Name:       "delete verify",

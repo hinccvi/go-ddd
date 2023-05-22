@@ -60,7 +60,7 @@ func (eh *HTTPErrorHandler) Handler(logger log.Logger) func(err error, c echo.Co
 			if c.Request().Method == http.MethodHead {
 				err = c.NoContent(he.Code)
 			} else {
-				err = tools.JSON(c, code, tools.Error, struct {
+				err = tools.JSONRespErr(c, code, struct {
 					Error string `json:"error"`
 				}{message})
 			}
